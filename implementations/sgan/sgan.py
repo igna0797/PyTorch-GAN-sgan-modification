@@ -2,6 +2,7 @@ import argparse
 import os
 import numpy as np
 import math
+import pandas as pd  # Import Pandas for CSV handling
 
 import torchvision.transforms as transforms
 from torchvision.utils import save_image
@@ -28,6 +29,10 @@ parser.add_argument("--num_classes", type=int, default=10, help="number of class
 parser.add_argument("--img_size", type=int, default=32, help="size of each image dimension")
 parser.add_argument("--channels", type=int, default=1, help="number of image channels")
 parser.add_argument("--sample_interval", type=int, default=400, help="interval between image sampling")
+
+parser.add_argument("--max_lines", type=int, default=1, help="number of lines added as noise")
+parser.add_argument("--random_amount_lines", type=bool, default= False , help="if false always maximum amount")
+
 opt = parser.parse_args()
 print(opt)
 
@@ -72,6 +77,39 @@ class Generator(nn.Module):
         img = self.conv_blocks(out)
         return img
 
+def add_lines(images,max_amount_lines=1, random_amount_lines=False):
+    
+    if random_amount_lines == True:
+      number_of_lines = np.random.randint(1,max_amount_lines+1)
+    else:
+      number_of_lines = max_amount_lines
+#@decicion: en cada batch la cantidad de linea sagregadas es igual puede variar de batch en batch pero en uno solo se mantiene
+    if len(images.shape) == 3:  # Single image case
+        channels, height, width = images.shape
+        images_with_lines = images.clone()  # Create a copy to work with
+        for _ in range(number_of_lines):
+          # Add horizontal line
+          horizontal_line_pos = np.random.randint(0, height)
+          images_with_lines[:, horizontal_line_pos, :] = 1  # Change pixel values to black
+
+          # Add vertical line
+          vertical_line_pos = np.random.randint(0, width)
+          images_with_lines[:, :, vertical_line_pos] = 1  # Change pixel values to black
+   
+    elif len(images.shape) == 4:  # Batch image case
+      batch_size, channels, height, width = images.shape
+      images_with_lines = images.clone()  # Create a copy to work with
+      for i in range(batch_size):
+          for _ in range(number_of_lines):
+            # Add horizontal line
+            horizontal_line_pos = np.random.randint(0, height)
+            images_with_lines[i, :, horizontal_line_pos, :] = 1  # Change pixel values to black
+
+            # Add vertical line
+            vertical_line_pos = np.random.randint(0, width)
+            images_with_lines[i, :, :, vertical_line_pos] = 1  # Change pixel values to black
+
+    return images_with_lines
 
 class Discriminator(nn.Module):
     def __init__(self):
@@ -106,114 +144,199 @@ class Discriminator(nn.Module):
 
         return validity, label
 
+if __name__ == "__main__":
+  directory = "/content/drive/MyDrive/Redes neuronales/Monografia/n-lineas:" + str(opt.max_lines) + "_Random:"+ str(opt.random_amount_lines)
+  print("Los datos estan guardados en:" + directory)
+  os.makedirs(directory, exist_ok=True)  # Create the directory if it doesn't exist
+  # Loss functions
+  adversarial_loss = torch.nn.BCELoss()
+  auxiliary_loss = torch.nn.CrossEntropyLoss()
 
-# Loss functions
-adversarial_loss = torch.nn.BCELoss()
-auxiliary_loss = torch.nn.CrossEntropyLoss()
+  # Initialize generator and discriminator
+  generator = Generator()
+  discriminator = Discriminator()
 
-# Initialize generator and discriminator
-generator = Generator()
-discriminator = Discriminator()
+  if cuda:
+      generator.cuda()
+      discriminator.cuda()
+      adversarial_loss.cuda()
+      auxiliary_loss.cuda()
 
-if cuda:
-    generator.cuda()
-    discriminator.cuda()
-    adversarial_loss.cuda()
-    auxiliary_loss.cuda()
+  # Configure data loader
+  os.makedirs("../../data/mnist", exist_ok=True)
+  dataloader = torch.utils.data.DataLoader(
+      datasets.MNIST(
+          "../../data/mnist",
+          train=True,
+          download=True,
+          transform=transforms.Compose(
+              [transforms.Resize(opt.img_size), transforms.ToTensor(), transforms.Lambda(lambda x: add_lines(x, opt.max_lines, opt.random_amount_lines)) ,transforms.Normalize([0.5], [0.5] )]
+          ),
+      ),
+      batch_size=opt.batch_size,
+      shuffle=True,
+  )
 
-# Initialize weights
-generator.apply(weights_init_normal)
-discriminator.apply(weights_init_normal)
+  # Optimizers
+  optimizer_G = torch.optim.Adam(generator.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
+  optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
 
-# Configure data loader
-os.makedirs("../../data/mnist", exist_ok=True)
-dataloader = torch.utils.data.DataLoader(
-    datasets.MNIST(
-        "../../data/mnist",
-        train=True,
-        download=True,
-        transform=transforms.Compose(
-            [transforms.Resize(opt.img_size), transforms.ToTensor(), transforms.Normalize([0.5], [0.5])]
-        ),
-    ),
-    batch_size=opt.batch_size,
-    shuffle=True,
-)
+  FloatTensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
+  LongTensor = torch.cuda.LongTensor if cuda else torch.LongTensor
 
-# Optimizers
-optimizer_G = torch.optim.Adam(generator.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
-optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
+  """
+  # Initialize weights
+  if os.path.exists("/content/PyTorch-GAN-sgan-modification/implementations/sgan/generator_weights.pth") and os.path.exists("/content/PyTorch-GAN-sgan-modification/implementations/sgan/discriminator_weights.pth"):
+    generator.load_state_dict(torch.load("/content/PyTorch-GAN-sgan-modification/implementations/sgan/generator_weights.pth"))
+    discriminator.load_state_dict(torch.load("/content/PyTorch-GAN-sgan-modification/implementations/sgan/discriminator_weights.pth"))
+    print("Loaded pre-trained weights.")
+  else:
+    generator.apply(weights_init_normal)
+    discriminator.apply(weights_init_normal)
 
-FloatTensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
-LongTensor = torch.cuda.LongTensor if cuda else torch.LongTensor
+  # Initialize weights
+  if os.path.exists( directory + "/generator_weights.pth") and os.path.exists(directory +"/discriminator_weights.pth"):
+      generator.load_state_dict(torch.load(directory + "/generator_weights.pth"))
+      discriminator.load_state_dict(torch.load(directory +"/discriminator_weights.pth"))
+      print("Loaded pre-trained weights.")
+  else:
+      generator.apply(weights_init_normal)
+      discriminator.apply(weights_init_normal)
+      print("Creating new weights.")
+  """
+# Create variables to track batch and epoch
+  current_epoch = 0
+  current_batch = 0
 
-# ----------
-#  Training
-# ----------
+  # Check if a checkpoint file exists
+  checkpoint_file = "checkpoint.pth"
+  if os.path.exists(directory + checkpoint_file):
+      checkpoint = torch.load(directory + checkpoint_file)
+      current_epoch = checkpoint["epoch"]
+      current_batch = checkpoint["batch"]
+      generator.load_state_dict(checkpoint["generator_state_dict"])
+      discriminator.load_state_dict(checkpoint["discriminator_state_dict"])
+      optimizer_G.load_state_dict(checkpoint["optimizer_G_state_dict"])
+      optimizer_D.load_state_dict(checkpoint["optimizer_D_state_dict"])
+      print(f"Loaded checkpoint from epoch {current_epoch}, batch {current_batch}")
 
-for epoch in range(opt.n_epochs):
-    for i, (imgs, labels) in enumerate(dataloader):
 
-        batch_size = imgs.shape[0]
+  # Visualize a couple of real images from the dataset
+  sample_data = next(iter(dataloader))
+  sample_images, _ = sample_data
 
-        # Adversarial ground truths
-        valid = Variable(FloatTensor(batch_size, 1).fill_(1.0), requires_grad=False)
-        fake = Variable(FloatTensor(batch_size, 1).fill_(0.0), requires_grad=False)
-        fake_aux_gt = Variable(LongTensor(batch_size).fill_(opt.num_classes), requires_grad=False)
+  # Save the visualization images in the same folder as generated images
+  save_image(sample_images[:20], directory + "/dataset_visualization.png", nrow=5, normalize=True)
 
-        # Configure input
-        real_imgs = Variable(imgs.type(FloatTensor))
-        labels = Variable(labels.type(LongTensor))
+  # ----------
+  #  Training
+  # ----------
+#gen_loss_log = open(directory + "/loss_log.txt", "w")
 
-        # -----------------
-        #  Train Generator
-        # -----------------
+  # Initialize an empty list to collect loss data
+  loss_data = []
 
-        optimizer_G.zero_grad()
+  # Define the directory where you want to save images
+  image_dir = directory + "/training/images"
+  # Create the directory if it doesn't exist
+  os.makedirs(image_dir, exist_ok=True)
+  for epoch in range(current_epoch, opt.n_epochs):
+      for i, (imgs, labels) in enumerate(dataloader):
+          current_batch = i
+          current_epoch = epoch
+          batch_size = imgs.shape[0]
 
-        # Sample noise and labels as generator input
-        z = Variable(FloatTensor(np.random.normal(0, 1, (batch_size, opt.latent_dim))))
+          # Adversarial ground truths
+          valid = Variable(FloatTensor(batch_size, 1).fill_(1.0), requires_grad=False)
+          fake = Variable(FloatTensor(batch_size, 1).fill_(0.0), requires_grad=False)
+          fake_aux_gt = Variable(LongTensor(batch_size).fill_(opt.num_classes), requires_grad=False)
 
-        # Generate a batch of images
-        gen_imgs = generator(z)
+          # Configure input
+          real_imgs = Variable(imgs.type(FloatTensor))
+          labels = Variable(labels.type(LongTensor))
 
-        # Loss measures generator's ability to fool the discriminator
-        validity, _ = discriminator(gen_imgs)
-        g_loss = adversarial_loss(validity, valid)
+          # -----------------
+          #  Train Generator
+          # -----------------
 
-        g_loss.backward()
-        optimizer_G.step()
+          optimizer_G.zero_grad()
 
-        # ---------------------
-        #  Train Discriminator
-        # ---------------------
+          # Sample noise and labels as generator input
+          z = Variable(FloatTensor(np.random.normal(0, 1, (batch_size, opt.latent_dim))))
 
-        optimizer_D.zero_grad()
+          # Generate a batch of images
+          gen_imgs = generator(z)
+          gen_imgs = add_lines(gen_imgs, opt.max_lines , opt.random_amount_lines )
+          # Loss measures generator's ability to fool the discriminator
+          validity, _ = discriminator(gen_imgs)
+          g_loss = adversarial_loss(validity, valid)
 
-        # Loss for real images
-        real_pred, real_aux = discriminator(real_imgs)
-        d_real_loss = (adversarial_loss(real_pred, valid) + auxiliary_loss(real_aux, labels)) / 2
+          g_loss.backward()
+          optimizer_G.step()
 
-        # Loss for fake images
-        fake_pred, fake_aux = discriminator(gen_imgs.detach())
-        d_fake_loss = (adversarial_loss(fake_pred, fake) + auxiliary_loss(fake_aux, fake_aux_gt)) / 2
+          # ---------------------
+          #  Train Discriminator
+          # ---------------------
 
-        # Total discriminator loss
-        d_loss = (d_real_loss + d_fake_loss) / 2
+          optimizer_D.zero_grad()
 
-        # Calculate discriminator accuracy
-        pred = np.concatenate([real_aux.data.cpu().numpy(), fake_aux.data.cpu().numpy()], axis=0)
-        gt = np.concatenate([labels.data.cpu().numpy(), fake_aux_gt.data.cpu().numpy()], axis=0)
-        d_acc = np.mean(np.argmax(pred, axis=1) == gt)
+          # Loss for real images
+          real_pred, real_aux = discriminator(real_imgs)
+          d_real_loss = (adversarial_loss(real_pred, valid) + auxiliary_loss(real_aux, labels)) / 2
 
-        d_loss.backward()
-        optimizer_D.step()
+          # Loss for fake images
+          fake_pred, fake_aux = discriminator(gen_imgs.detach())
+          d_fake_loss = (adversarial_loss(fake_pred, fake) + auxiliary_loss(fake_aux, fake_aux_gt)) / 2
 
-        print(
-            "[Epoch %d/%d] [Batch %d/%d] [D loss: %f, acc: %d%%] [G loss: %f]"
-            % (epoch, opt.n_epochs, i, len(dataloader), d_loss.item(), 100 * d_acc, g_loss.item())
-        )
+          # Total discriminator loss
+          d_loss = (d_real_loss + d_fake_loss) / 2
 
-        batches_done = epoch * len(dataloader) + i
-        if batches_done % opt.sample_interval == 0:
-            save_image(gen_imgs.data[:25], "images/%d.png" % batches_done, nrow=5, normalize=True)
+          # Calculate discriminator accuracy
+          pred = np.concatenate([real_aux.data.cpu().numpy(), fake_aux.data.cpu().numpy()], axis=0)
+          gt = np.concatenate([labels.data.cpu().numpy(), fake_aux_gt.data.cpu().numpy()], axis=0)
+          d_acc = np.mean(np.argmax(pred, axis=1) == gt)
+
+          d_loss.backward()
+          optimizer_D.step()
+
+          print(
+              "[Epoch %d/%d] [Batch %d/%d] [D loss: %f, acc: %d%%] [G loss: %f]"
+              % (epoch, opt.n_epochs, i, len(dataloader), d_loss.item(), 100 * d_acc, g_loss.item())
+          )
+
+          batches_done = epoch * len(dataloader) + i
+          if batches_done % opt.sample_interval == 0:
+              save_image(gen_imgs.data[:25], image_dir + "/%d.png" % batches_done, nrow=5, normalize=True)
+
+              torch.save({
+                "epoch": current_epoch,
+                "batch": current_batch,
+                "generator_state_dict": generator.state_dict(),
+                "discriminator_state_dict": discriminator.state_dict(),
+                "optimizer_G_state_dict": optimizer_G.state_dict(),
+                "optimizer_D_state_dict": optimizer_D.state_dict(),
+            }, directory + checkpoint_file)
+              # Create a DataFrame from the collected data
+              if os.path.exists(directory + "training/loss_data.csv"):
+                original_loss_df = pd.read_csv(directory + "/training/loss_data.csv")
+                new_loss_df = pd.DataFrame(loss_data)
+                loss_df=pd.concat(original_loss_df,new_loss_df)
+              else:
+                loss_df = pd.DataFrame(loss_data)
+              # Save the loss data to a CSV file
+              loss_df.to_csv(directory + "/training/loss_data.csv", index=False)
+            
+          loss_data.append({
+              'Epoch': epoch,
+              'Batch': i,
+              'Discriminator Loss': d_loss.item(),
+              'Discriminator Accuarcy' : 100 * d_acc,
+              'Generator Loss': g_loss.item(),
+          })
+
+#loss_log.close()
+
+  # Save generator weights
+  torch.save(generator.state_dict(), directory + "/generator_weights.pth")
+  # Save discriminator weights
+  torch.save(discriminator.state_dict(), directory +"/discriminator_weights.pth")
