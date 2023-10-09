@@ -329,7 +329,7 @@ if __name__ == "__main__":
                 loss_df = pd.DataFrame(loss_data)
               # Save the loss data to a CSV file
               loss_df.to_csv(directory + "/training/loss_data.csv", index=False)
-            
+              loss_data=[]
           loss_data.append({
               'Epoch': epoch,
               'Batch': i,
