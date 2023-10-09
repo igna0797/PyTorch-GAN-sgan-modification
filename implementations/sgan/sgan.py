@@ -317,10 +317,13 @@ if __name__ == "__main__":
                 "optimizer_D_state_dict": optimizer_D.state_dict(),
             }, directory + checkpoint_file)
               # Create a DataFrame from the collected data
-              if os.path.exists(directory + "training/loss_data.csv"):
+              if os.path.exists(directory + "/training/loss_data.csv"):
                 original_loss_df = pd.read_csv(directory + "/training/loss_data.csv")
                 new_loss_df = pd.DataFrame(loss_data)
-                loss_df=pd.concat(original_loss_df,new_loss_df)
+                # Create a list of DataFrames to concatenate
+                dataframes_to_concat = [original_loss_df, new_loss_df]
+                # Use pd.concat to concatenate the DataFrames
+                loss_df = pd.concat(dataframes_to_concat)
               else:
                 loss_df = pd.DataFrame(loss_data)
               # Save the loss data to a CSV file
