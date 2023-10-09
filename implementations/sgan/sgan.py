@@ -305,7 +305,7 @@ if __name__ == "__main__":
           )
 
           batches_done = epoch * len(dataloader) + i
-          if batches_done % opt.sample_interval == 0:
+          if batches_done % opt.sample_interval == 0 and batches_done !=0:
               save_image(gen_imgs.data[:25], image_dir + "/%d.png" % batches_done, nrow=5, normalize=True)
 
               torch.save({
@@ -325,6 +325,7 @@ if __name__ == "__main__":
                 # Use pd.concat to concatenate the DataFrames
                 loss_df = pd.concat(dataframes_to_concat)
               else:
+                print("no enconto")
                 loss_df = pd.DataFrame(loss_data)
               # Save the loss data to a CSV file
               loss_df.to_csv(directory + "/training/loss_data.csv", index=False)
