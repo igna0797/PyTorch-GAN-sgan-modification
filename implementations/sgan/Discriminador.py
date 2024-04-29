@@ -1,6 +1,8 @@
 import os
 import torch
 import torch.nn as nn
+import argparse
+
 from torchvision.transforms import transforms
 from torchvision.utils import save_image
 from sgan import Discriminator  # Import your Discriminator class from Sgan.py
@@ -36,9 +38,13 @@ def evaluate_image_with_discriminator(discriminator, image):
     return label
 
 if __name__ == "__main__":
-    # Define the path to the discriminator weights file
-    weights_path = "/content/drive/MyDrive/Redes neuronales/Monografia/discriminator_weights.pth"  # Replace with the correct path
-
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-w ", "--weights_path", type=str, default=".", help="directory for the weigths of the discriminator")
+    parser.add_argument("-i","--image_path" ,type=str , default="images/seed_1.000.png",help="directory for the image to discriminate")
+    arguments = parser.parse_args()
+    #old directory for weights:/content/drive/MyDrive/Redes neuronales/Monografia/discriminator_weights.pth
+    print(arguments)
+    weights_path = arguments.weights_path
     # Create an instance of the Discriminator class
     discriminator = Discriminator()
 
@@ -46,7 +52,7 @@ if __name__ == "__main__":
     load_discriminator_weights(discriminator, weights_path)
     
     # Load Image and keeps it grayscale
-    image_path = "/content/drive/MyDrive/Redes neuronales/Monografia/images/seed_1.000.png"
+    image_path = arguments.image_path
     image = Image.open(image_path).convert("L") 
 
     label_probabilities = evaluate_image_with_discriminator(discriminator, image)
