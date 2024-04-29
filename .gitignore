@@ -4,6 +4,7 @@
 *.hdf5
 .DS_Store
 
+.venv/
 data/*/
 implementations/*/data
 implementations/*/images
