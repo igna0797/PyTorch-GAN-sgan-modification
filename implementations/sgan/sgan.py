@@ -145,7 +145,7 @@ class Discriminator(nn.Module):
         return validity, label
 
 if __name__ == "__main__":
-  directory = "/content/drive/MyDrive/Redes neuronales/Monografia/n-lineas:" + str(opt.max_lines) + "_Random:"+ str(opt.random_amount_lines)
+  directory = "../../../content/drive/MyDrive/Redes neuronales/Monografia/n-lineas:" + str(opt.max_lines) + "_Random:"+ str(opt.random_amount_lines)
   print("Los datos estan guardados en:" + directory)
   os.makedirs(directory, exist_ok=True)  # Create the directory if it doesn't exist
   # Loss functions
