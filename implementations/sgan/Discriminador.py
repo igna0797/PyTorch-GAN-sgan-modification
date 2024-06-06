@@ -13,7 +13,10 @@ from PIL import Image
 def load_discriminator_weights(discriminator, weights_path):
     # Load the saved discriminator weights
     try:
-        discriminator.load_state_dict(torch.load(weights_path))
+        if cuda:
+            discriminator.load_state_dict(torch.load(weights_path))
+        else:
+            discriminator.load_state_dict(torch.load(weights_path,map_location=torch.device('cpu')))        
         print("Discriminator weights loaded successfully.")
     except:
         print("Error loading discriminator weights. Make sure the path is correct.")
@@ -38,9 +41,11 @@ def evaluate_image_with_discriminator(discriminator, image):
     return label
 
 if __name__ == "__main__":
+    global cuda 
+    cuda = True if torch.cuda.is_available() else False
     parser = argparse.ArgumentParser()
-    parser.add_argument("-w ", "--weights_path", type=str, default=".", help="directory for the weigths of the discriminator")
-    parser.add_argument("-i","--image_path" ,type=str , default="images/seed_1.000.png",help="directory for the image to discriminate")
+    parser.add_argument("-w ", "--weights_path", type=str, default="./discriminator_weights.pth", help="directory for the weigths of the discriminator")
+    parser.add_argument("-i","--image_path" ,type=str , default="implementations/sgan/images/seed_1.000.png",help="directory for the image to discriminate")
     arguments = parser.parse_args()
     #old directory for weights:/content/drive/MyDrive/Redes neuronales/Monografia/discriminator_weights.pth
     print(arguments)

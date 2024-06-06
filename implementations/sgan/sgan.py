@@ -3,6 +3,7 @@ import os
 import numpy as np
 import math
 import pandas as pd  # Import Pandas for CSV handling
+import pickle
 
 import torchvision.transforms as transforms
 from torchvision.utils import save_image
@@ -16,29 +17,37 @@ import torch.nn.functional as F
 import torch
 
 os.makedirs("images", exist_ok=True)
-
-parser = argparse.ArgumentParser()
-parser.add_argument("--n_epochs", type=int, default=200, help="number of epochs of training")
-parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
-parser.add_argument("--lr", type=float, default=0.0002, help="adam: learning rate")
-parser.add_argument("--b1", type=float, default=0.5, help="adam: decay of first order momentum of gradient")
-parser.add_argument("--b2", type=float, default=0.999, help="adam: decay of first order momentum of gradient")
-parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use during batch generation")
-parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")
-parser.add_argument("--num_classes", type=int, default=10, help="number of classes for dataset")
-parser.add_argument("--img_size", type=int, default=32, help="size of each image dimension")
-parser.add_argument("--channels", type=int, default=1, help="number of image channels")
-parser.add_argument("--sample_interval", type=int, default=400, help="interval between image sampling")
-
-parser.add_argument("--max_lines", type=int, default=1, help="number of lines added as noise")
-parser.add_argument("--random_amount_lines", type=bool, default= False , help="if false always maximum amount")
-
-opt = parser.parse_args()
-print(opt)
-
 cuda = True if torch.cuda.is_available() else False
 
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--n_epochs", type=int, default=200, help="number of epochs of training")
+    parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
+    parser.add_argument("--lr", type=float, default=0.0002, help="adam: learning rate")
+    parser.add_argument("--b1", type=float, default=0.5, help="adam: decay of first order momentum of gradient")
+    parser.add_argument("--b2", type=float, default=0.999, help="adam: decay of first order momentum of gradient")
+    parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use during batch generation")
+    parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")
+    parser.add_argument("--num_classes", type=int, default=10, help="number of classes for dataset")
+    parser.add_argument("--img_size", type=int, default=32, help="size of each image dimension")
+    parser.add_argument("--channels", type=int, default=1, help="number of image channels")
+    parser.add_argument("--sample_interval", type=int, default=400, help="interval between image sampling")
 
+    parser.add_argument("--max_lines", type=int, default=3, help="number of lines added as noise")
+    parser.add_argument("--random_amount_lines", type=bool, default= False , help="if false always maximum amount")
+
+    opt = parser.parse_args()
+    print(opt)
+    with open("opt.pkl","wb") as f:
+       pickle.dump(opt,f)    
+else:
+    try:
+        with open("opt.pkl", "rb") as f:
+            opt = pickle.load(f)
+    except (FileNotFoundError, IOError, pickle.UnpicklingError) as e:
+        # Handle the exception by printing an error message or providing default values
+        print(f"An error occurred: {e}")
+        sys.exit(1)
 def weights_init_normal(m):
     classname = m.__class__.__name__
     if classname.find("Conv") != -1:

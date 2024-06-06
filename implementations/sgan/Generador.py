@@ -41,7 +41,8 @@ def generate_image_from_seed(seed, save_path=None,generator_weights_path="../../
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-o ", "--output_path", type=str, default="images/", help="directory for the Image returned by the generator")
-    parser.add_argument("-s","--seed" ,type=int , default=3 ,help="seed for the generator for reproducible results")
+    parser.add_argument("-s","--seed" ,type=int , default=1 ,help="seed for the generator for reproducible results")
+    parser.add_argument("-w ", "--weights_path", type=str, default="../../trainings/n-lineas_5_Random_True/generator_weights.pth", help="directory for the weigths of the discriminator")
     arguments = parser.parse_args()
     #old directory : "/content/drive/MyDrive/Redes neuronales/Monografia/images/"
     seed_value = arguments.seed
@@ -50,5 +51,5 @@ if __name__ == "__main__":
     output_path = os.path.join(output_dir, output_filename)
     print(output_path)
     # Generate images with different seeds
-    generator_weights_path = "../../trainings/n-lineas_3_Random_False/generator_weights.pth"
+    generator_weights_path = arguments.weights_path
     generated_image = generate_image_from_seed(seed_value,output_path,generator_weights_path)
