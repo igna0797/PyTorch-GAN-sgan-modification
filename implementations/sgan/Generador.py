@@ -42,7 +42,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-o ", "--output_path", type=str, default="images/", help="directory for the Image returned by the generator")
     parser.add_argument("-s","--seed" ,type=int , default=1 ,help="seed for the generator for reproducible results")
-    parser.add_argument("-w ", "--weights_path", type=str, default="../../trainings/n-lineas_5_Random_True/generator_weights.pth", help="directory for the weigths of the discriminator")
+    parser.add_argument("-w ", "--weights_path", type=str, default="../../trainings/n-lineas:3_Random:False/generator_weights.pth", help="directory for the weigths of the generator")
     arguments = parser.parse_args()
     #old directory : "/content/drive/MyDrive/Redes neuronales/Monografia/images/"
     seed_value = arguments.seed
