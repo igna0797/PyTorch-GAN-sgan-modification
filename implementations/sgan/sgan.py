@@ -19,7 +19,7 @@ import torch
 os.makedirs("images", exist_ok=True)
 cuda = True if torch.cuda.is_available() else False
 
-if __name__ == "__main__":
+def parseArguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("--n_epochs", type=int, default=200, help="number of epochs of training")
     parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
@@ -38,7 +38,17 @@ if __name__ == "__main__":
 
     opt = parser.parse_args()
     print(opt)
-    with open("opt.pkl","wb") as f:
+    return opt
+
+if __name__ == "__main__":
+    opt = parseArguments()
+    # Get the directory where the script is located
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # Define the relative path to the pickle file
+    relative_file_path = os.path.join(script_dir, "../../trainings/n-lineas:" + str(opt.max_lines) + "_Random:"+ str(opt.random_amount_lines))    
+    #directory = "../../../content/drive/MyDrive/Redes neuronales/Monografia/n-lineas:" + str(opt.max_lines) + "_Random:"+ str(opt.random_amount_lines)
+    optionsPath = os.path.join(relative_file_path,"opt.pkl")
+    with open(optionsPath,"wb") as f:
        pickle.dump(opt,f)    
 else:
     try:
@@ -154,7 +164,6 @@ class Discriminator(nn.Module):
         return validity, label
 
 if __name__ == "__main__":
-  directory = "../../../content/drive/MyDrive/Redes neuronales/Monografia/n-lineas:" + str(opt.max_lines) + "_Random:"+ str(opt.random_amount_lines)
   print("Los datos estan guardados en:" + directory)
   os.makedirs(directory, exist_ok=True)  # Create the directory if it doesn't exist
   # Loss functions
