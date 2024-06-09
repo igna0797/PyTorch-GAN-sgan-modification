@@ -45,8 +45,8 @@ if __name__ == "__main__":
     # Get the directory where the script is located
     script_dir = os.path.dirname(os.path.abspath(__file__))
     # Define the relative path to the pickle file
-    relative_file_path = os.path.join(script_dir, "../../trainings/n-lineas:" + str(opt.max_lines) + "_Random:"+ str(opt.random_amount_lines))    
-    #directory = "../../../content/drive/MyDrive/Redes neuronales/Monografia/n-lineas:" + str(opt.max_lines) + "_Random:"+ str(opt.random_amount_lines)
+    relative_file_path = os.path.join(script_dir, "../../trainings/n-lineas_" + str(opt.max_lines) + "_Random_"+ str(opt.random_amount_lines))    
+    #directory = "../../../content/drive/MyDrive/Redes neuronales/Monografia/n-lineas_" + str(opt.max_lines) + "_Random_"+ str(opt.random_amount_lines)
     optionsPath = os.path.join(relative_file_path,"opt.pkl")
     with open(optionsPath,"wb") as f:
        pickle.dump(opt,f)    
