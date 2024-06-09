@@ -7,4 +7,3 @@ pillow
 urllib3
 scikit-image
 pandas
-pickle
