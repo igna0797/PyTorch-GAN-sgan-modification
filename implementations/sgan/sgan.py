@@ -43,9 +43,9 @@ def parseArguments():
 def get_path(__file__,n_lines=3 , n_random = False):
     script_dir = os.path.dirname(os.path.abspath(__file__))
     # Define the relative path to the pickle file
-    relative_file_path = os.path.join(script_dir, "../../trainings/n-lineas_" + str(opt.max_lines) + "_Random_"+ str(opt.random_amount_lines))    
+    directory = os.path.join(script_dir, "../../trainings/n-lineas_" + str(opt.max_lines) + "_Random_"+ str(opt.random_amount_lines))    
     #directory = "../../../content/drive/MyDrive/Redes neuronales/Monografia/n-lineas_" + str(opt.max_lines) + "_Random_"+ str(opt.random_amount_lines)
-    optionsPath = os.path.join(relative_file_path,"opt.pkl")
+    optionsPath = os.path.join(directory,"opt.pkl")
     return optionsPath
 
 if __name__ == "__main__":
@@ -64,7 +64,7 @@ else:
     except (FileNotFoundError, IOError, pickle.UnpicklingError) as e:
         # Handle the exception by printing an error message or providing default values
         print(f"An error occurred: {e}")
-        sys.exit(1)
+        raise
 def weights_init_normal(m):
     classname = m.__class__.__name__
     if classname.find("Conv") != -1:
