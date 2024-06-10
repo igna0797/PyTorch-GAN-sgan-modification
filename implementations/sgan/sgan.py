@@ -40,19 +40,26 @@ def parseArguments():
     print(opt)
     return opt
 
-if __name__ == "__main__":
-    opt = parseArguments()
-    # Get the directory where the script is located
+def get_path(__file__,n_lines=3 , n_random = False):
     script_dir = os.path.dirname(os.path.abspath(__file__))
     # Define the relative path to the pickle file
     relative_file_path = os.path.join(script_dir, "../../trainings/n-lineas_" + str(opt.max_lines) + "_Random_"+ str(opt.random_amount_lines))    
     #directory = "../../../content/drive/MyDrive/Redes neuronales/Monografia/n-lineas_" + str(opt.max_lines) + "_Random_"+ str(opt.random_amount_lines)
     optionsPath = os.path.join(relative_file_path,"opt.pkl")
+    return optionsPath
+
+if __name__ == "__main__":
+    opt = parseArguments()
+    # Get the directory where the script is located
+    optionsPath = get_path(__file__, opt.max_lines , opt.random_amount_lines)
+    #Save options
     with open(optionsPath,"wb") as f:
        pickle.dump(opt,f)    
 else:
+    #Load options    
+    optionsPath = get_path(__file__,3,False)
     try:
-        with open("opt.pkl", "rb") as f:
+        with open(optionsPath, "rb") as f:
             opt = pickle.load(f)
     except (FileNotFoundError, IOError, pickle.UnpicklingError) as e:
         # Handle the exception by printing an error message or providing default values
