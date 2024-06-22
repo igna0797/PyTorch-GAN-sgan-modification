@@ -39,6 +39,8 @@ def parseArguments():
 
     else :
         parser.add_argument("-w ", "--weights_path", type=str, default="../../trainings/n-lineas_3_Random_False/generator_weights.pth", help="directory for the weigths of the generator")
+        parser.add_argument("-o ", "--output_path", type=str, default="images/", help="directory for the Image returned by the generator")
+        parser.add_argument("-s","--seed" ,type=int , default=3 ,help="seed for the generator for reproducible results")
     opt = parser.parse_args()
     print(opt)
     return opt
