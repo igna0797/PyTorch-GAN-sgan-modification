@@ -52,7 +52,5 @@ if __name__ == "__main__":
     print(output_path)
     # Generate images with different seeds
     abs_dir = os.path.dirname(os.path.abspath(__file__))
-    opt_path = os.path.join(abs_dir, arguments.weights_path)
-    
-    generator_weights_path = arguments.weights_path
+    generator_weights_path = os.path.join(abs_dir, arguments.weights_path)
     generated_image = generate_image_from_seed(seed_value,output_path,generator_weights_path)
