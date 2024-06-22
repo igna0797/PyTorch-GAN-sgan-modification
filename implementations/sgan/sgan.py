@@ -18,52 +18,64 @@ import torch
 
 os.makedirs("images", exist_ok=True)
 cuda = True if torch.cuda.is_available() else False
-
+print(f"Grapphics card accelertation: {cuda}")
 def parseArguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--n_epochs", type=int, default=200, help="number of epochs of training")
-    parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
-    parser.add_argument("--lr", type=float, default=0.0002, help="adam: learning rate")
-    parser.add_argument("--b1", type=float, default=0.5, help="adam: decay of first order momentum of gradient")
-    parser.add_argument("--b2", type=float, default=0.999, help="adam: decay of first order momentum of gradient")
-    parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use during batch generation")
-    parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")
-    parser.add_argument("--num_classes", type=int, default=10, help="number of classes for dataset")
-    parser.add_argument("--img_size", type=int, default=32, help="size of each image dimension")
-    parser.add_argument("--channels", type=int, default=1, help="number of image channels")
-    parser.add_argument("--sample_interval", type=int, default=400, help="interval between image sampling")
+    if __name__ == "__main__":
+        parser.add_argument("--n_epochs", type=int, default=200, help="number of epochs of training")
+        parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
+        parser.add_argument("--lr", type=float, default=0.0002, help="adam: learning rate")
+        parser.add_argument("--b1", type=float, default=0.5, help="adam: decay of first order momentum of gradient")
+        parser.add_argument("--b2", type=float, default=0.999, help="adam: decay of first order momentum of gradient")
+        parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use during batch generation")
+        parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")
+        parser.add_argument("--num_classes", type=int, default=10, help="number of classes for dataset")
+        parser.add_argument("--img_size", type=int, default=32, help="size of each image dimension")
+        parser.add_argument("--channels", type=int, default=1, help="number of image channels")
+        parser.add_argument("--sample_interval", type=int, default=400, help="interval between image sampling")
 
-    parser.add_argument("--max_lines", type=int, default=3, help="number of lines added as noise")
-    parser.add_argument("--random_amount_lines", type=bool, default= False , help="if false always maximum amount")
+        parser.add_argument("--max_lines", type=int, default=3, help="number of lines added as noise")
+        parser.add_argument("--random_amount_lines", type=bool, default= False , help="if false always maximum amount")
 
+    else :
+        parser.add_argument("-w ", "--weights_path", type=str, default="../../trainings/n-lineas_3_Random_False/generator_weights.pth", help="directory for the weigths of the generator")
     opt = parser.parse_args()
     print(opt)
     return opt
-
-def get_path(__file__,n_lines=3 , n_random = False):
+def get_directory(__file__,max_lines=3 , random_amount_lines = False):
     script_dir = os.path.dirname(os.path.abspath(__file__))
     # Define the relative path to the pickle file
-    directory = os.path.join(script_dir, "../../trainings/n-lineas_" + str(opt.max_lines) + "_Random_"+ str(opt.random_amount_lines))    
+    directory = os.path.join(script_dir, "../../trainings/n-lineas_" + str(max_lines) + "_Random_"+ str(random_amount_lines))    
     #directory = "../../../content/drive/MyDrive/Redes neuronales/Monografia/n-lineas_" + str(opt.max_lines) + "_Random_"+ str(opt.random_amount_lines)
-    optionsPath = os.path.join(directory,"opt.pkl")
-    return optionsPath
+    return directory
+def get_opt_path(__file__ , weights_path):
+    abs_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Define the relative path to the pickle file
+    opt_path = os.path.join(abs_dir, os.path.dirname(weights_path), 'opt.pkl')
+    #directory = "../../../content/drive/MyDrive/Redes neuronales/Monografia/n-lineas_" + str(opt.max_lines) + "_Random_"+ str(opt.random_amount_lines)
+    return opt_path
 
 if __name__ == "__main__":
     opt = parseArguments()
     # Get the directory where the script is located
-    optionsPath = get_path(__file__, opt.max_lines , opt.random_amount_lines)
+    directory = get_directory(__file__, opt.max_lines , opt.random_amount_lines)
+    optionsPath = os.path.join(directory,"opt.pkl")
     #Save options
     with open(optionsPath,"wb") as f:
        pickle.dump(opt,f)    
 else:
     #Load options    
-    optionsPath = get_path(__file__,3,False)
+    #directory = get_directory(__file__,3,False)
+    CallerOptions = parseArguments()
+    optionsPath = get_opt_path(__file__, weights_path= CallerOptions.weights_path)
     try:
         with open(optionsPath, "rb") as f:
             opt = pickle.load(f)
     except (FileNotFoundError, IOError, pickle.UnpicklingError) as e:
         # Handle the exception by printing an error message or providing default values
         print(f"An error occurred: {e}")
+        print(f"optionsPath: {optionsPath}")
         raise
 def weights_init_normal(m):
     classname = m.__class__.__name__
