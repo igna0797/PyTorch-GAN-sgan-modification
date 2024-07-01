@@ -40,7 +40,7 @@ def generate_image_from_seed(seed, save_path=None,generator_weights_path="../../
 # Example usage with different seeds:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-o ", "--output_path", type=str, default="../../images/", help="directory for the Image returned by the generator")
+    parser.add_argument("-o ", "--output_path", type=str, default="../../images/n-lineas_3_Random_False", help="directory for the Image returned by the generator")
     parser.add_argument("-s","--seed" ,type=int , default=3 ,help="seed for the generator for reproducible results")
     parser.add_argument("-w ", "--weights_path", type=str, default="../../trainings/n-lineas_3_Random_False/generator_weights.pth", help="directory for the weigths of the generator")
     arguments = parser.parse_args()
