@@ -179,9 +179,9 @@ if __name__ == "__main__":
   current_batch = 0
 
   # Check if a checkpoint file exists
-  checkpoint_file = "checkpoint.pth"
-  if os.path.exists(os.path.join(directory , checkpoint_file)):
-      checkpoint = torch.load(os.path.join(directory , checkpoint_file))
+  checkpoint_directory = os.path.join(directory , "checkpoint.pth")
+  if os.path.exists(checkpoint_directory):
+      checkpoint = torch.load(checkpoint_directory)
       current_epoch = checkpoint["epoch"]
       current_batch = checkpoint["batch"]
       generator.load_state_dict(checkpoint["generator_state_dict"])
@@ -285,7 +285,7 @@ if __name__ == "__main__":
                 "discriminator_state_dict": discriminator.state_dict(),
                 "optimizer_G_state_dict": optimizer_G.state_dict(),
                 "optimizer_D_state_dict": optimizer_D.state_dict(),
-            }, directory + checkpoint_file)
+            }, checkpoint_directory)
               # Create a DataFrame from the collected data
               if os.path.exists(directory + "/training/loss_data.csv"):
                 original_loss_df = pd.read_csv(directory + "/training/loss_data.csv")
