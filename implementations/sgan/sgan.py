@@ -207,7 +207,10 @@ if __name__ == "__main__":
   loss_data = []
 
   # Define the directory where you want to save images
-  image_dir = directory + "/training/images"
+  if opt.image_output is None:
+    image_dir = directory + "/training/images"
+  else:
+      image_dir = opt.image_output
   # Create the directory if it doesn't exist
   os.makedirs(image_dir, exist_ok=True)
   for epoch in range(current_epoch, opt.n_epochs):

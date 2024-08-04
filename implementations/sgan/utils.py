@@ -17,7 +17,7 @@ def parseArguments():
     parser.add_argument("--sample_interval", type=int, default=400, help="interval between image sampling")
     parser.add_argument("--max_lines", type=int, default=3, help="number of lines added as noise")
     parser.add_argument("--random_amount_lines", type=bool, default= False , help="if false always maximum amount")
-
+    parser.add_argument("--image_output" ,type=str ,help="Directory to store the images generated during training")
 # This is for loading a already done model
     parser.add_argument("-w ", "--weights_path", type=str, default="../../trainings/n-lineas_3_Random_False/generator_weights.pth", help="directory for the weigths of the generator")
     parser.add_argument("-o ", "--output_path", type=str, default="images/", help="directory for the Image returned by the generator")
