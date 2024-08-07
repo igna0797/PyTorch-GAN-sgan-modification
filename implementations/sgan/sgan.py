@@ -116,6 +116,8 @@ class Discriminator(nn.Module):
         return validity, label
 
 if __name__ == "__main__":
+  if opt.Training_output is not None:
+      directory = opt.Training_output
   print("Los datos estan guardados en:" + directory)
   os.makedirs(directory, exist_ok=True)  # Create the directory if it doesn't exist
   # Loss functions
