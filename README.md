@@ -11,25 +11,32 @@ Collection of PyTorch implementations of Generative Adversarial Network varietie
     + [Semi-Supervised GAN](#semi-supervised-gan)
       
 ## Installation
-    $ git clone https://github.com/eriklindernoren/PyTorch-GAN
+    $ git clone https://github.com/igna0797/PyTorch-GAN-sgan-modification.git
     $ cd PyTorch-GAN/
     $ sudo pip3 install -r requirements.txt
 
 ## Implementations   
 
 ### Semi-Supervised GAN
-_Semi-Supervised Generative Adversarial Network_
+_Semi-Supervised Learning with Generative Adversarial Networks_
 
 #### Authors
-Augustus Odena
+Ignacio Dominguez
 
 #### Abstract
-We extend Generative Adversarial Networks (GANs) to the semi-supervised context by forcing the discriminator network to output class labels. We train a generative model G and a discriminator D on a dataset with inputs belonging to one of N classes. At training time, D is made to predict which of N+1 classes the input belongs to, where an extra class is added to correspond to the outputs of G. We show that this method can be used to create a more data-efficient classifier and that it allows for generating higher quality samples than a regular GAN.
+El presente trabajo se centra en el Aprendizaje Semi-Supervisado con Redes Generativas Adversariales (SGAN), una extensión de las Redes Generativas Adversariales.
 
-[[Paper]](https://arxiv.org/abs/1606.01583) [[Code]](implementations/sgan/sgan.py)
+El articulo, "Semi-Supervised Learning with Generative Adversarial Networks," de Augustus Odena, [[Paper]](https://arxiv.org/abs/1606.01583) [[Code]](https://github.com/eriklindernoren/PyTorch-GAN/blob/master/implementations/sgan/sgan.py)
+ sienta las bases de esta monografía. Esta investigación aborda la cuestión de cómo mejorar la eficiencia de un clasificador en un entorno de aprendizaje semi-supervisado, donde las etiquetas de clase disponibles son escasas.
+
+En particular, el trabajo propone modificaciones a un generador y un clasificador en un marco de Generative Adversarial Networks (GANs) semi-supervisado, conocido como SGAN. La novedad radica en que el discriminador de la GAN es modificado para realizar tareas de clasificación con  multiples salidas, no solo de  verdadero-falso. Esto no solo mejora el rendimiento de la clasificación en tareas semi-supervisadas, sino que también da lugar a la generación de datos de alta calidad.
+
+En esta monografía, se explorarán las bases teóricas de las redes Convolucionales (ConvNets) y las GANs, así como las modificaciones realizadas en el modelo SGAN. Se describirá en detalle cómo estas ideas fundamentales se combinan para lograr una mayor eficiencia en tareas de clasificación semi-supervisada y una mejora en la calidad de los datos generados.
+
+Además, se presentarán las pruebas extras  realizadas como parte de este trabajo, donde se ha agregado ruido controlado al modelo y se ha observado su impacto en el rendimiento y la generación de datos.
+
+[[Paper]](Monografia_Redes_Neuronales.pdf) [[Code]](implementations/sgan/sgan.py)
 
 #### Run Example
-```
-$ cd implementations/sgan/
-$ python3 sgan.py
-```
+
+You can download just Run-Notebook.ipynb to see an example beeing used 
