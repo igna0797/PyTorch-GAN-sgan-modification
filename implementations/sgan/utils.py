@@ -1,6 +1,9 @@
 import argparse
 import os
 import numpy as np
+import torch
+from torchvision import transforms, datasets
+from torchvision.utils import save_image 
 
 def parseArguments():
     parser = argparse.ArgumentParser()
@@ -15,6 +18,7 @@ def parseArguments():
     parser.add_argument("--img_size", type=int, default=32, help="size of each image dimension")
     parser.add_argument("--channels", type=int, default=1, help="number of image channels")
     parser.add_argument("--sample_interval", type=int, default=400, help="interval between image sampling")
+    parser.add_argument("--noise_type", type=str, choices=["lines", "gaussian", "mnist"], required=True, help="Type of noise to add: 'lines', 'gaussian', 'mnist'")
     parser.add_argument("--max_lines", type=int, default=3, help="number of lines added as noise")
     parser.add_argument("--random_amount_lines", type=bool, default= False , help="if false always maximum amount")
     parser.add_argument("--image_output" ,type=str ,help="Directory to store the images generated during training")
@@ -40,6 +44,43 @@ def get_opt_path(__file__ , weights_path):
     opt_path = os.path.join(abs_dir, os.path.dirname(weights_path), 'opt.pkl')
     #directory = "../../../content/drive/MyDrive/Redes neuronales/Monografia/n-lineas_" + str(opt.max_lines) + "_Random_"+ str(opt.random_amount_lines)
     return opt_path
+
+def add_noise(images,args):
+    
+    if args.noise_type == "lines":
+        return add_lines(images, max_amount_lines=args.max_lines, random_amount_lines=args.random_amount_lines)
+    elif args.noise_type == "mnist":
+        os.makedirs("../../data/mnist2", exist_ok=True)
+        transform = transforms.Compose([
+            transforms.Resize(args.img_size),
+            transforms.ToTensor(),
+            transforms.Normalize([0.5], [0.5] )
+        ])
+        mnist_data = datasets.MNIST(root="../../data/mnist2", train=True, download=True, transform=transform)
+        mnist_loader = torch.utils.data.DataLoader(mnist_data, batch_size=images.size(0), shuffle=True)
+        return add_mnist_noise(images, mnist_loader)
+    else:
+        raise ValueError(f"Unknown noise type: {args.noise_type}")
+    
+def add_mnist_noise(images, mnist_data):
+    if len(images.shape) == 3:# Single image case
+        next_data = next(iter(mnist_data))
+        sample_images, _ = next_data
+        save_image(sample_images[:20],  "dataset_visualizationMNISNST.png", nrow=5, normalize=True)
+        noise_images, _ = next_data
+        noise_images = noise_images.expand_as(images)  # Expand to match input image channels
+        noise_images = noise_images + images  
+    elif len(images.shape) == 4:  # Batch image case
+        batch_size, channels, height, width = images.shape
+        noise_images = images.clone()
+        for i in range(batch_size):
+            image= images[i,:,:,:]
+            next_data = next(iter(mnist_data))
+            noise_image, _ = next_data
+            noise_image = noise_image.expand_as(image)  # Expand to match input image channels
+            noise_image = torch.maximum(noise_image , image)
+            noise_images[i,:,:,:] = noise_image
+    return noise_images
 
 def add_lines(images,max_amount_lines=1, random_amount_lines=False):
     if random_amount_lines == True:
