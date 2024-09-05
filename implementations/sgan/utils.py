@@ -68,6 +68,7 @@ def add_mnist_noise(images, mnist_loader):
         #sample_images, _ = next_data
         #save_image(sample_images[:20],  "dataset_visualizationMNISNST.png", nrow=5, normalize=True)
         noise_images, _ = next_data
+        noise_images = noise_images.to(images.device).float()  # Convert to float and match device
         #print(f"rudio {noise_image.shape}")
         #print(f"imagenes {images.shape}")
         noise_images = noise_images[0]
@@ -76,6 +77,7 @@ def add_mnist_noise(images, mnist_loader):
     elif len(images.shape) == 4:  # Batch image case
         next_data = next(iter(mnist_loader))
         noise_images, _ = next_data
+        noise_images = noise_images.to(images.device).float()  # Convert to float and match device
         noise_images = noise_images.expand_as(images)  # Expand to match input image channels
         noise_images = torch.maximum(noise_images , images)
 

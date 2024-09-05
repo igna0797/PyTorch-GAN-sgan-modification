@@ -18,6 +18,7 @@ import torch
 from utils import parseArguments , get_directory , get_opt_path , add_noise
 
 os.makedirs("images", exist_ok=True)
+global cuda
 cuda = True if torch.cuda.is_available() else False
 print(f"Grapphics card accelertation: {cuda}")
 
@@ -154,6 +155,8 @@ if __name__ == "__main__":
   optimizer_G = torch.optim.Adam(generator.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
   optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
 
+  global FloatTensor
+  global LongTensor
   FloatTensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
   LongTensor = torch.cuda.LongTensor if cuda else torch.LongTensor
 
