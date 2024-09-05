@@ -47,9 +47,9 @@ def get_opt_path(__file__ , weights_path):
 
 def add_noise(images,args):
     
-    if args.noise_type == "lines":
+    if args.noise_type == "lines": #Lines noise
         return add_lines(images, max_amount_lines=args.max_lines, random_amount_lines=args.random_amount_lines)
-    elif args.noise_type == "mnist":
+    elif args.noise_type == "mnist": # mnist noise
         os.makedirs("../../data/mnist2", exist_ok=True)
         transform = transforms.Compose([
             transforms.Resize(args.img_size),
@@ -62,24 +62,23 @@ def add_noise(images,args):
     else:
         raise ValueError(f"Unknown noise type: {args.noise_type}")
     
-def add_mnist_noise(images, mnist_data):
+def add_mnist_noise(images, mnist_loader):
     if len(images.shape) == 3:# Single image case
-        next_data = next(iter(mnist_data))
-        sample_images, _ = next_data
-        save_image(sample_images[:20],  "dataset_visualizationMNISNST.png", nrow=5, normalize=True)
+        next_data = next(iter(mnist_loader))
+        #sample_images, _ = next_data
+        #save_image(sample_images[:20],  "dataset_visualizationMNISNST.png", nrow=5, normalize=True)
+        noise_images, _ = next_data
+        #print(f"rudio {noise_image.shape}")
+        #print(f"imagenes {images.shape}")
+        noise_images = noise_images[0]
+        noise_images = noise_images.expand_as(images)  # Expand to match input image channels
+        noise_images = torch.maximum(noise_images , images) 
+    elif len(images.shape) == 4:  # Batch image case
+        next_data = next(iter(mnist_loader))
         noise_images, _ = next_data
         noise_images = noise_images.expand_as(images)  # Expand to match input image channels
-        noise_images = noise_images + images  
-    elif len(images.shape) == 4:  # Batch image case
-        batch_size, channels, height, width = images.shape
-        noise_images = images.clone()
-        for i in range(batch_size):
-            image= images[i,:,:,:]
-            next_data = next(iter(mnist_data))
-            noise_image, _ = next_data
-            noise_image = noise_image.expand_as(image)  # Expand to match input image channels
-            noise_image = torch.maximum(noise_image , image)
-            noise_images[i,:,:,:] = noise_image
+        noise_images = torch.maximum(noise_images , images)
+
     return noise_images
 
 def add_lines(images,max_amount_lines=1, random_amount_lines=False):
