@@ -5,6 +5,8 @@ import torch
 from torchvision import transforms, datasets
 from torchvision.utils import save_image 
 
+mnist_loader = None
+
 def parseArguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("--n_epochs", type=int, default=200, help="number of epochs of training")
@@ -50,17 +52,22 @@ def add_noise(images,args):
     if args.noise_type == "lines": #Lines noise
         return add_lines(images, max_amount_lines=args.max_lines, random_amount_lines=args.random_amount_lines)
     elif args.noise_type == "mnist": # mnist noise
-        os.makedirs("../../data/mnist2", exist_ok=True)
-        transform = transforms.Compose([
+        global mnist_loader
+        if mnist_loader is None:
+            mnist_loader = get_mnist_loader(images,args)
+        return add_mnist_noise(images, mnist_loader)
+    else:
+        raise ValueError(f"Unknown noise type: {args.noise_type}")
+
+def get_mnist_loader(images, args):
+    os.makedirs("../../data/mnist2", exist_ok=True)
+    transform = transforms.Compose([
             transforms.Resize(args.img_size),
             transforms.ToTensor(),
             transforms.Normalize([0.5], [0.5] )
         ])
-        mnist_data = datasets.MNIST(root="../../data/mnist2", train=True, download=True, transform=transform)
-        mnist_loader = torch.utils.data.DataLoader(mnist_data, batch_size=images.size(0), shuffle=True)
-        return add_mnist_noise(images, mnist_loader)
-    else:
-        raise ValueError(f"Unknown noise type: {args.noise_type}")
+    mnist_data = datasets.MNIST(root="../../data/mnist2", train=True, download=True, transform=transform)
+    return torch.utils.data.DataLoader(mnist_data, batch_size=images.size(0), shuffle=True)
     
 def add_mnist_noise(images, mnist_loader):
     if len(images.shape) == 3:# Single image case
