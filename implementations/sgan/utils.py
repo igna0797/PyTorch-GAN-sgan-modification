@@ -20,7 +20,7 @@ def parseArguments():
     parser.add_argument("--img_size", type=int, default=32, help="size of each image dimension")
     parser.add_argument("--channels", type=int, default=1, help="number of image channels")
     parser.add_argument("--sample_interval", type=int, default=400, help="interval between image sampling")
-    parser.add_argument("--noise_type", type=str, choices=["lines", "gaussian", "mnist"], required=True, help="Type of noise to add: 'lines', 'gaussian', 'mnist'")
+    parser.add_argument("--noise_type", type=str, choices=["lines", "gaussian", "mnist"], help="Type of noise to add: 'lines', 'gaussian', 'mnist'")
     parser.add_argument("--max_lines", type=int, default=3, help="number of lines added as noise")
     parser.add_argument("--random_amount_lines", type=bool, default= False , help="if false always maximum amount")
     parser.add_argument("--image_output" ,type=str ,help="Directory to store the images generated during training")
