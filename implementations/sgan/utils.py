@@ -26,7 +26,7 @@ def parseArguments():
     parser.add_argument("--image_output" ,type=str ,help="Directory to store the images generated during training")
     parser.add_argument("--Training_output" ,type=str ,help="Directory to store the training")
 # This is for loading a already done model
-    parser.add_argument("-w ", "--weights_path", type=str, default="../../trainings/n-lineas_3_Random_False/generator_weights.pth", help="directory for the weigths of the generator")
+    parser.add_argument("-w ", "--weights_path", type=str, help="directory for the weigths of the generator")
     parser.add_argument("-o ", "--output_path", type=str, default="images/", help="directory for the Image returned by the generator")
     parser.add_argument("-s","--seed" ,type=int , default=3 ,help="seed for the generator for reproducible results")
     parser.add_argument("-i","--image_path" ,type=str , default="implementations/sgan/images/seed_1.000.png",help="directory for the image to discriminate")
