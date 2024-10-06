@@ -32,7 +32,7 @@ def load_model(weights_path: str, device: torch.device) :
 
     try:
         checkpoint = torch.load(weights_path, map_location=device)
-        discriminator.load_state_dict(checkpoint["discriminator_state_dict"])
+        discriminator.load_state_dict(checkpoint)
     except Exception as e:
         print(f"Error loading model weights: {e}")
         exit(1)
