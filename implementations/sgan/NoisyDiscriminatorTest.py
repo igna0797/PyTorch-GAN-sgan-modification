@@ -63,8 +63,16 @@ def evaluate_discriminator(discriminator: Discriminator, dataloader: DataLoader,
 
 
 if __name__ == "__main__":
-    opt = parseArguments()
-
+    CallerOptions = parseArguments()
+    optionsPath = get_opt_path(__file__, weights_path= CallerOptions.weights_path)
+    try:
+        with open(optionsPath, "rb") as f:
+            opt = pickle.load(f)
+    except (FileNotFoundError, IOError, pickle.UnpicklingError) as e:
+        # Handle the exception by printing an error message or providing default values
+        print(f"An error occurred: {e}")
+        print(f"optionsPath: {optionsPath}")
+        raise
     # Set device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
