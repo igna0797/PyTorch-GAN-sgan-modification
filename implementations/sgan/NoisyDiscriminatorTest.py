@@ -49,10 +49,11 @@ def evaluate_discriminator(discriminator: Discriminator, dataloader: DataLoader,
 
     with torch.no_grad():
         for images, labels in dataloader:
-            images = images.to(device)
+            images = images.to(device).float()  
             labels = labels.to(device)
             noisy_images, noise_labels = NoiseAdder.add_noise(images,opt)
-            
+
+            noised_images = noised_images.float()  # Convert to float before feeding to the model            
             noise_labels = noise_labels.to(device) 
             noisy_images = noise_labels.to(device) 
 
