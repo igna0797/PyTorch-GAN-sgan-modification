@@ -1,10 +1,11 @@
 import os
 import torch
 import torchvision.transforms as transforms
+import pickle
 from torch.utils.data import DataLoader
 from torchvision import datasets
 from sgan import Discriminator
-from utils import parseArguments , add_noise
+from utils import parseArguments , add_noise , get_opt_path
 
 
 def load_dataset(batch_size: int) -> DataLoader:
@@ -55,7 +56,7 @@ def evaluate_discriminator(discriminator: Discriminator, dataloader: DataLoader,
             label_probabilities = label_outputs[:, :-1]  # Exclude the last value (label for 'real/fake')
             predicted_labels = torch.argmax(label_probabilities, dim=1)
 
-            correct_predictions += (predicted_labels == labels or predicted_labels == noise_labels).sum().item()
+            correct_predictions += torch.logical_or(predicted_labels == labels, predicted_labels == noise_labels).sum().item()
             total_samples += labels.size(0)
 
     accuracy = 100 * correct_predictions / total_samples
@@ -80,7 +81,7 @@ if __name__ == "__main__":
     dataloader = load_dataset(opt.batch_size)
 
     # Load model
-    discriminator = load_model(opt.weights_path, device)
+    discriminator = load_model(CallerOptions.weights_path, device)
 
     # Evaluate model
     accuracy = evaluate_discriminator(discriminator, dataloader, device, opt)
