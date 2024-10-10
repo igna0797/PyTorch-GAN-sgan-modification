@@ -47,6 +47,30 @@ def get_opt_path(__file__ , weights_path):
     #directory = "../../../content/drive/MyDrive/Redes neuronales/Monografia/n-lineas_" + str(opt.max_lines) + "_Random_"+ str(opt.random_amount_lines)
     return opt_path
 
+
+class NoiseAdder:
+    """Class that adds noise and stores the mnist_loader to reuse it across calls."""
+    
+    mnist_loader = None  # Class-level attribute to cache the loader
+    
+    @staticmethod
+    def add_noise(images, args):
+        """Add noise to the images based on the specified noise type."""
+        
+        if args.noise_type == "lines":  # Lines noise
+            return add_lines(images, max_amount_lines=args.max_lines, random_amount_lines=args.random_amount_lines)
+        
+        elif args.noise_type == "mnist":  # MNIST noise
+            # Initialize the mnist_loader only if it is not already created
+            if NoiseAdder.mnist_loader is None:
+                NoiseAdder.mnist_loader = get_mnist_loader(images, args)
+            
+            # Add MNIST noise to the images
+            return add_mnist_noise(images, NoiseAdder.mnist_loader)
+        
+        else:
+            raise ValueError(f"Unknown noise type: {args.noise_type}")
+
 def add_noise(images,args):
     
     if args.noise_type == "lines": #Lines noise

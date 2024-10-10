@@ -15,7 +15,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch
 
-from utils import parseArguments , get_directory , get_opt_path , add_noise
+from utils import parseArguments , get_directory , get_opt_path , NoiseAdder
 
 os.makedirs("images", exist_ok=True)
 global cuda
@@ -143,7 +143,7 @@ if __name__ == "__main__":
           train=True,
           download=True,
           transform=transforms.Compose(
-              [transforms.Resize(opt.img_size), transforms.ToTensor(), transforms.Lambda(lambda x: add_noise(x,opt)) ,transforms.Normalize([0.5], [0.5] )]
+              [transforms.Resize(opt.img_size), transforms.ToTensor(), transforms.Lambda(lambda x: NoiseAdder.add_noise(x,opt)) ,transforms.Normalize([0.5], [0.5] )]
           ),
       ),
       batch_size=opt.batch_size,
@@ -245,7 +245,7 @@ if __name__ == "__main__":
 
           # Generate a batch of images
           gen_imgs = generator(z)
-          gen_imgs = add_noise(gen_imgs, opt)
+          gen_imgs = NoiseAdder.add_noise(gen_imgs, opt)
           # Loss measures generator's ability to fool the discriminator
           validity, _ = discriminator(gen_imgs)
           g_loss = adversarial_loss(validity, valid)
