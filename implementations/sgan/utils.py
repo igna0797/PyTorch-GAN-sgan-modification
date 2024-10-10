@@ -71,17 +71,6 @@ class NoiseAdder:
         else:
             raise ValueError(f"Unknown noise type: {args.noise_type}")
 
-def add_noise(images,args):
-    
-    if args.noise_type == "lines": #Lines noise
-        return add_lines(images, max_amount_lines=args.max_lines, random_amount_lines=args.random_amount_lines)
-    elif args.noise_type == "mnist": # mnist noise
-        global mnist_loader
-        if mnist_loader is None:
-            mnist_loader = get_mnist_loader(images,args)
-        return add_mnist_noise(images, mnist_loader)
-    else:
-        raise ValueError(f"Unknown noise type: {args.noise_type}")
 
 def get_mnist_loader(images, args):
     os.makedirs("../../data/mnist2", exist_ok=True)
