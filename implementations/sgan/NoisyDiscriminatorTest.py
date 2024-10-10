@@ -52,6 +52,10 @@ def evaluate_discriminator(discriminator: Discriminator, dataloader: DataLoader,
             images = images.to(device)
             labels = labels.to(device)
             noisy_images, noise_labels = NoiseAdder.add_noise(images,opt)
+            
+            noise_labels = noise_labels.to(device) 
+            noisy_images = noise_labels.to(device) 
+
             _, label_outputs = discriminator(noisy_images)
             label_probabilities = label_outputs[:, :-1]  # Exclude the last value (label for 'real/fake')
             predicted_labels = torch.argmax(label_probabilities, dim=1)
