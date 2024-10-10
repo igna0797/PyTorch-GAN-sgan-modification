@@ -5,7 +5,7 @@ import pickle
 from torch.utils.data import DataLoader
 from torchvision import datasets
 from sgan import Discriminator
-from utils import parseArguments , add_noise , get_opt_path
+from utils import parseArguments , NoiseAdder , get_opt_path
 
 
 def load_dataset(batch_size: int) -> DataLoader:
@@ -51,7 +51,7 @@ def evaluate_discriminator(discriminator: Discriminator, dataloader: DataLoader,
         for images, labels in dataloader:
             images = images.to(device)
             labels = labels.to(device)
-            noisy_images, noise_labels = add_noise(images,opt)
+            noisy_images, noise_labels = NoiseAdder.add_noise(images,opt)
             _, label_outputs = discriminator(noisy_images)
             label_probabilities = label_outputs[:, :-1]  # Exclude the last value (label for 'real/fake')
             predicted_labels = torch.argmax(label_probabilities, dim=1)
