@@ -53,9 +53,8 @@ def evaluate_discriminator(discriminator: Discriminator, dataloader: DataLoader,
             labels = labels.to(device)
             noisy_images, noise_labels = NoiseAdder.add_noise(images,opt)
 
-            noisy_images = noisy_images        
             noise_labels = noise_labels.to(device) 
-            noisy_images = noise_labels.to(device).float()  # Convert to float before feeding to the model    
+            noisy_images = noisy_images.to(device).float()  # Convert to float before feeding to the model    
 
             _, label_outputs = discriminator(noisy_images)
             label_probabilities = label_outputs[:, :-1]  # Exclude the last value (label for 'real/fake')
