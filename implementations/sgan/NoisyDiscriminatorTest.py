@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 from torchvision import datasets
 from sgan import Discriminator
 from utils import parseArguments , NoiseAdder , get_opt_path
+from torchvision.utils import save_image
 
 
 def load_dataset( args ) -> DataLoader:
@@ -46,6 +47,7 @@ def evaluate_discriminator(discriminator: Discriminator, dataloader: DataLoader,
     """Evaluate the Discriminator on the dataset."""
     correct_predictions = 0
     total_samples = 0
+    i=0
 
     with torch.no_grad():
         for images, labels in dataloader:
@@ -62,8 +64,21 @@ def evaluate_discriminator(discriminator: Discriminator, dataloader: DataLoader,
 
             correct_predictions += torch.logical_or(predicted_labels == labels, predicted_labels == noise_labels).sum().item()
             total_samples += labels.size(0)
+            
+            #Imprime la imagen con el ruido y sus labels
+            i += 1
 
+            save_path = f'Imagen_numero_{i}.png' # Define the path to save the image
+            log_file_path = "output_log.txt"   # Define the path to the log file
+
+            save_image(noisy_images[0], save_path, normalize=True)
+           
+            log_message = f'label de la imagen {i}: {labels[0]}, label de el ruido {i}: {noise_labels[0]}'
+            with open(log_file_path, 'a') as f:
+                f.write(log_message + '\n')
+                
     accuracy = 100 * correct_predictions / total_samples
+   
     return accuracy
 
 
