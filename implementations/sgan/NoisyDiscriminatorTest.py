@@ -71,7 +71,7 @@ def evaluate_discriminator(discriminator: Discriminator, dataloader: DataLoader,
             if i%100 == 0 or i < 10:
                 save_path = f'Imagen_numero_{i}.png' # Define the path to save the image
                 log_file_path = "output_log.txt"   # Define the path to the log file
-                save_image(images[0], save_path+'original', normalize=True)
+                save_image(images[0], 'original'+save_path, normalize=True)
                 save_image(noisy_images[0], save_path, normalize=True)
             
                 log_message = f'label de la imagen {i}: {labels[0]}, label de el ruido {i}: {noise_labels[0]}, label predecido {i}: {predicted_labels[0]}'
