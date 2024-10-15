@@ -74,7 +74,7 @@ def evaluate_discriminator(discriminator: Discriminator, dataloader: DataLoader,
                 save_image(images[0], save_path+'original', normalize=True)
                 save_image(noisy_images[0], save_path, normalize=True)
             
-                log_message = f'label de la imagen {i}: {labels[0]}, label de el ruido {i}: {noise_labels[0]}'
+                log_message = f'label de la imagen {i}: {labels[0]}, label de el ruido {i}: {noise_labels[0]}, label predecido {i}: {predicted_labels[0]}'
                 with open(log_file_path, 'a') as f:
                     f.write(log_message + '\n')
 
