@@ -64,18 +64,19 @@ def evaluate_discriminator(discriminator: Discriminator, dataloader: DataLoader,
 
             correct_predictions += torch.logical_or(predicted_labels == labels, predicted_labels == noise_labels).sum().item()
             total_samples += labels.size(0)
-            
+            if i == 0:
+                print(f'samples: {labels.size(0)}, labels size: {labels.size()}')
             #Imprime la imagen con el ruido y sus labels
             i += 1
-
-            save_path = f'Imagen_numero_{i}.png' # Define the path to save the image
-            log_file_path = "output_log.txt"   # Define the path to the log file
-
-            save_image(noisy_images[0], save_path, normalize=True)
-           
-            log_message = f'label de la imagen {i}: {labels[0]}, label de el ruido {i}: {noise_labels[0]}'
-            with open(log_file_path, 'a') as f:
-                f.write(log_message + '\n')
+            if i%100 == 0 or i < 10:
+                save_path = f'Imagen_numero_{i}.png' # Define the path to save the image
+                log_file_path = "output_log.txt"   # Define the path to the log file
+                save_image(images[0], save_path+'original', normalize=True)
+                save_image(noisy_images[0], save_path, normalize=True)
+            
+                log_message = f'label de la imagen {i}: {labels[0]}, label de el ruido {i}: {noise_labels[0]}'
+                with open(log_file_path, 'a') as f:
+                    f.write(log_message + '\n')
 
     accuracy = 100 * correct_predictions / total_samples
    
