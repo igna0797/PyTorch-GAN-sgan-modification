@@ -24,7 +24,7 @@ def load_dataset( args ) -> DataLoader:
         transform=transform
     )
 
-    return DataLoader(dataset, batch_size=args.batch_size, shuffle=False)
+    return DataLoader(dataset, batch_size=args.batch_size, shuffle=False,drop_last=True)
 
 
 def load_model(weights_path: str, device: torch.device) :
@@ -76,7 +76,7 @@ def evaluate_discriminator(discriminator: Discriminator, dataloader: DataLoader,
             log_message = f'label de la imagen {i}: {labels[0]}, label de el ruido {i}: {noise_labels[0]}'
             with open(log_file_path, 'a') as f:
                 f.write(log_message + '\n')
-                
+
     accuracy = 100 * correct_predictions / total_samples
    
     return accuracy
