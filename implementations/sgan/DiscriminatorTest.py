@@ -56,7 +56,7 @@ def evaluate_discriminator(discriminator: Discriminator, dataloader: DataLoader,
             predicted_labels = torch.argmax(label_probabilities, dim=1)
 
             correct_predictions += (predicted_labels == labels).sum().item()
-            falseNegatives += torch.sum(tensor == 0).item()
+            falseNegatives += torch.sum(validity == 0).item()
             total_samples += labels.size(0)
 
     accuracy = 100 * correct_predictions / total_samples
