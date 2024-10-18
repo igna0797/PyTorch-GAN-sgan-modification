@@ -7,10 +7,10 @@ from sgan import Discriminator
 from utils import parseArguments
 
 
-def load_dataset(batch_size: int) -> DataLoader:
+def load_dataset(args) -> DataLoader:
     """Load the MNIST dataset with the appropriate transformations."""
     transform = transforms.Compose([
-        transforms.Resize(32),
+        transforms.Resize(args.img_size),
         transforms.ToTensor(),
         transforms.Normalize([0.5], [0.5])
     ])
@@ -22,7 +22,7 @@ def load_dataset(batch_size: int) -> DataLoader:
         transform=transform
     )
 
-    return DataLoader(dataset, batch_size=batch_size, shuffle=False)
+    return DataLoader(dataset, batch_size=args.batch_size, shuffle=False)
 
 
 def load_model(weights_path: str, device: torch.device) :
@@ -69,7 +69,7 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Load dataset
-    dataloader = load_dataset(opt.batch_size)
+    dataloader = load_dataset(opt)
 
     # Load model
     discriminator = load_model(opt.weights_path, device)
