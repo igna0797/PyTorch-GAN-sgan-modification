@@ -45,21 +45,24 @@ def evaluate_discriminator(discriminator: Discriminator, dataloader: DataLoader,
     """Evaluate the Discriminator on the dataset."""
     correct_predictions = 0
     total_samples = 0
-
+    falseNegatives  = 0
     with torch.no_grad():
         for images, labels in dataloader:
             images = images.to(device)
             labels = labels.to(device)
 
-            _, label_outputs = discriminator(images)
+            validity, label_outputs = discriminator(images)
             label_probabilities = label_outputs[:, :-1]  # Exclude the last value (label for 'real/fake')
             predicted_labels = torch.argmax(label_probabilities, dim=1)
 
             correct_predictions += (predicted_labels == labels).sum().item()
+            falseNegatives += validity.count(0)
             total_samples += labels.size(0)
 
     accuracy = 100 * correct_predictions / total_samples
-    return accuracy
+    falseNegativesPerrcentage = (falseNegatives / total_samples) * 100
+
+    return accuracy , falseNegativesPerrcentage
 
 
 if __name__ == "__main__":
@@ -75,6 +78,7 @@ if __name__ == "__main__":
     discriminator = load_model(opt.weights_path, device)
 
     # Evaluate model
-    accuracy = evaluate_discriminator(discriminator, dataloader, device)
+    accuracy, falseNegativesPerrcentage = evaluate_discriminator(discriminator, dataloader, device)
 
     print(f"Discriminator accuracy on the MNIST dataset: {accuracy:.2f}%")
+    print(f"False Negatives Percentage: {falseNegativesPerrcentage:.2f}%")
