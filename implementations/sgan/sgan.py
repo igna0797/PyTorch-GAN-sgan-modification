@@ -104,6 +104,9 @@ class Discriminator(nn.Module):
         # The height and width of downsampled image
         ds_size = opt.img_size // 2 ** 4
 
+        #number of classes we will output when we combine both labels
+        n_outputs = labelEncoder.number_of_outputs(opt.num_classes) - 1 #substracting 1 because FAKE FAKE is not a valid output
+
         # Output layers
         self.adv_layer = nn.Sequential(nn.Linear(128 * ds_size ** 2, 1), nn.Sigmoid())
         self.aux_layer = nn.Sequential(nn.Linear(128 * ds_size ** 2, opt.num_classes + 1), nn.Softmax())
@@ -143,7 +146,7 @@ if __name__ == "__main__":
           train=True,
           download=True,
           transform=transforms.Compose(
-              [transforms.Resize(opt.img_size), transforms.ToTensor(), transforms.Lambda(lambda x: NoiseAdder.add_noise(x,opt)) ,transforms.Normalize([0.5], [0.5] )]
+              [transforms.Resize(opt.img_size), transforms.ToTensor(),transforms.Normalize([0.5], [0.5] )]
           ),
       ),
       batch_size=opt.batch_size,
@@ -211,7 +214,7 @@ if __name__ == "__main__":
 
   # Initialize an empty list to collect loss data
   loss_data = []
-
+  encoder = labelEncoder(opt.num_classes)
   # Define the directory where you want to save images
   if opt.image_output is None:
     image_dir = directory + "/training/images"
@@ -224,15 +227,22 @@ if __name__ == "__main__":
           current_batch = i
           current_epoch = epoch
           batch_size = imgs.shape[0]
+          imgs, noise_label = NoiseAdder.add_noise(imgs,opt)
 
+          final_labels = encoder.encode_labels(labels, noise_label)
+
+          #Getting the fake + noise labels
+          fake_label_list = [opt.num_classes] * batch_size
+          
+         #TODO check if its ok
           # Adversarial ground truths
           valid = Variable(FloatTensor(batch_size, 1).fill_(1.0), requires_grad=False)
           fake = Variable(FloatTensor(batch_size, 1).fill_(0.0), requires_grad=False)
-          fake_aux_gt = Variable(LongTensor(batch_size).fill_(opt.num_classes), requires_grad=False)
-
+          #fake_aux_gt = Variable(LongTensor(batch_size).fill_(opt.num_classes), requires_grad=False)
+               
           # Configure input
-          real_imgs = Variable(imgs.type(FloatTensor))
-          labels = Variable(labels.type(LongTensor))
+          real_imgs = Variable(FloatTensor(imgs))
+          final_labels = Variable(LongTensor(final_labels))
 
           # -----------------
           #  Train Generator
@@ -245,7 +255,9 @@ if __name__ == "__main__":
 
           # Generate a batch of images
           gen_imgs = generator(z)
-          gen_imgs = NoiseAdder.add_noise(gen_imgs, opt)
+          gen_imgs,  noise_label = NoiseAdder.add_noise(gen_imgs, opt)
+          fake_aux_gt = encoder.encode_labels(fake_label_list, noise_label)  # Encode fake labels with noise labels
+          fake_aux_gt = Variable(LongTensor(fake_aux_gt))  
           # Loss measures generator's ability to fool the discriminator
           validity, _ = discriminator(gen_imgs)
           g_loss = adversarial_loss(validity, valid)
@@ -261,7 +273,7 @@ if __name__ == "__main__":
 
           # Loss for real images
           real_pred, real_aux = discriminator(real_imgs)
-          d_real_loss = (adversarial_loss(real_pred, valid) + auxiliary_loss(real_aux, labels)) / 2
+          d_real_loss = (adversarial_loss(real_pred, valid) + auxiliary_loss(real_aux, final_labels)) / 2
 
           # Loss for fake images
           fake_pred, fake_aux = discriminator(gen_imgs.detach())
@@ -272,7 +284,7 @@ if __name__ == "__main__":
 
           # Calculate discriminator accuracy
           pred = np.concatenate([real_aux.data.cpu().numpy(), fake_aux.data.cpu().numpy()], axis=0)
-          gt = np.concatenate([labels.data.cpu().numpy(), fake_aux_gt.data.cpu().numpy()], axis=0)
+          gt = np.concatenate([final_labels.data.cpu().numpy(), fake_aux_gt.data.cpu().numpy()], axis=0)
           d_acc = np.mean(np.argmax(pred, axis=1) == gt)
 
           d_loss.backward()

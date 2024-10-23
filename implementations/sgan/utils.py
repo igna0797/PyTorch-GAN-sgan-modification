@@ -2,6 +2,8 @@ import argparse
 import os
 import numpy as np
 import torch
+import itertools as it
+
 from torchvision import transforms, datasets
 from torchvision.utils import save_image 
 
@@ -135,3 +137,37 @@ def add_lines(images,max_amount_lines=1, random_amount_lines=False):
             images_with_lines[i, :, :, vertical_line_pos] = 1  # Change pixel values to black
 
     return images_with_lines
+
+
+class labelEncoder:
+    def __init__(self,num_classes):
+        """Initialize the TupleIndexer with the second_iterable."""
+        possible_labels = list(range(num_classes+1))
+        self.new_label_space = it.combinations_with_replacement(possible_labels, 2)
+        self.index_map = {tup: idx for idx, tup in enumerate(self.new_label_space)}
+
+    def encode_labels(self, label1 , label2 ) -> list :
+        """Returns indices of tuples in first_list based on the index_map."""
+        if isinstance(label1, torch.Tensor):
+            label1 = label1.tolist()
+        if isinstance(label2, torch.Tensor):
+            label2 = label2.tolist()
+
+        combined_labels= zip(label2,label1)
+        newLabel = []
+        for tup in combined_labels:
+            if tup in self.index_map:
+                newLabel.append(self.index_map[tup])
+            elif (tup[1], tup[0]) in self.index_map:
+                # Find the original index of the swapped tuple
+                newLabel.append(self.index_map[(tup[1], tup[0])])
+            else:
+                # Handle the case where the tuple is not in index_map
+                raise ValueError(f"Tuple {tup} not found in index_map either way")
+        return newLabel
+    
+    @staticmethod
+    def number_of_outputs(num_classes):
+        """Returns the number of possible outputs based on num_classes. assuming we will have 2 labels"""
+        return (num_classes + 1) * (num_classes + 2) // 2
+
