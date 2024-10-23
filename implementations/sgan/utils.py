@@ -82,7 +82,7 @@ def get_mnist_loader(images, args):
             transforms.Normalize([0.5], [0.5] )
         ])
     mnist_data = datasets.MNIST(root="../../data/mnist2", train=True, download=True, transform=transform)
-    return torch.utils.data.DataLoader(mnist_data, batch_size=images.size(0), shuffle=True)
+    return torch.utils.data.DataLoader(mnist_data, batch_size=images.size(0), shuffle=True,drop_last=True)
     
 def add_mnist_noise(images, mnist_loader):
     if len(images.shape) == 3:# Single image case
