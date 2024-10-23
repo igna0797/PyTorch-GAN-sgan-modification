@@ -241,9 +241,9 @@ if __name__ == "__main__":
           #fake_aux_gt = Variable(LongTensor(batch_size).fill_(opt.num_classes), requires_grad=False)
                
           # Configure input
-          real_imgs = Variable(FloatTensor(imgs))
-          final_labels = Variable(LongTensor(final_labels))
-
+          final_labels = Variable(torch.tensor(final_labels).type(LongTensor))
+          real_imgs = Variable(torch.tensor(imgs).type(FloatTensor))
+          
           # -----------------
           #  Train Generator
           # -----------------
