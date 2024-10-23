@@ -15,7 +15,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch
 
-from utils import parseArguments , get_directory , get_opt_path , NoiseAdder
+from utils import parseArguments , get_directory , get_opt_path , NoiseAdder, labelEncoder
 
 os.makedirs("images", exist_ok=True)
 global cuda
@@ -109,7 +109,7 @@ class Discriminator(nn.Module):
 
         # Output layers
         self.adv_layer = nn.Sequential(nn.Linear(128 * ds_size ** 2, 1), nn.Sigmoid())
-        self.aux_layer = nn.Sequential(nn.Linear(128 * ds_size ** 2, opt.num_classes + 1), nn.Softmax())
+        self.aux_layer = nn.Sequential(nn.Linear(128 * ds_size ** 2, n_outputs), nn.Softmax())
 
     def forward(self, img):
         out = self.conv_blocks(img)
