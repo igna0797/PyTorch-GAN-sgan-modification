@@ -166,6 +166,14 @@ class labelEncoder:
                 raise ValueError(f"Tuple {tup} not found in index_map either way")
         return newLabel
     
+    def decode_labels(self, encoded_labels):
+        """Returns the original tuples based on the index_map."""
+        return [list(self.new_label_space[idx]) for idx in encoded_labels]
+
+    def get_new_label_space(self):
+        """Returns the new label space."""
+        return list(self.new_label_space)
+    
     @staticmethod
     def number_of_outputs(num_classes):
         """Returns the number of possible outputs based on num_classes. assuming we will have 2 labels"""
