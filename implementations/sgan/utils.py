@@ -144,8 +144,12 @@ class labelEncoder:
         """Initialize the TupleIndexer with the second_iterable."""
         self.num_classes = num_classes
         possible_labels = list(range(num_classes+1))
-        self.new_label_space = list(it.combinations_with_replacement(possible_labels, 2))
-        self.index_map = {tup: idx for idx, tup in enumerate(self.new_label_space)}
+        self.new_label_space = it.combinations_with_replacement(possible_labels, 2)
+        self.index_map = {}
+        self.reverse_map = {}
+        for idx, tup in enumerate(it.combinations_with_replacement(possible_labels, 2)):
+            self.index_map[tup] = idx
+            self.reverse_map[idx] = tup
 
     def encode_labels(self, label1 , label2 ) -> list :
         """Returns indices of tuples in first_list based on the index_map."""
@@ -190,7 +194,21 @@ class labelEncoder:
 
     def decode_labels(self, encoded_labels):
         """Returns the original tuples based on the index_map."""
-        return [list(self.new_label_space[idx]) for idx in encoded_labels]
+        if isinstance(encoded_labels, torch.Tensor):
+            encoded_labels = encoded_labels.tolist()
+        
+        num_labels = len(encoded_labels)
+        # Pre-allocate lists with the correct size for efficiency
+        first_labels = [None] * num_labels
+        second_labels = [None] * num_labels
+
+        # Fill both lists in a single pass
+        for i, idx in enumerate(encoded_labels):
+            label1, label2 = self.reverse_map[idx]  # Unpack tuple
+            first_labels[i] = label1
+            second_labels[i] = label2
+
+        return first_labels, second_labels
 
     def get_new_label_space(self):
         """Returns the new label space."""
