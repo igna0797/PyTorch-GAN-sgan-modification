@@ -142,6 +142,7 @@ def add_lines(images,max_amount_lines=1, random_amount_lines=False):
 class labelEncoder:
     def __init__(self,num_classes):
         """Initialize the TupleIndexer with the second_iterable."""
+        self.num_classes = num_classes 
         possible_labels = list(range(num_classes+1))
         self.new_label_space = it.combinations_with_replacement(possible_labels, 2)
         self.index_map = {}
@@ -149,6 +150,8 @@ class labelEncoder:
         for idx, tup in enumerate(it.combinations_with_replacement(possible_labels, 2)):
             self.index_map[tup] = idx
             self.reverse_map[idx] = tup
+        self.index_map.pop((num_classes,num_classes)) #Removing (FAKE, FAKE) as it is not a valid combination
+        self.reverse_map.pop(len(self.index_map))  # Removing (FAKE, FAKE) as it is not a valid combination
 
     def encode_labels(self, label1 , label2 ) -> list :
         """Returns indices of tuples in first_list based on the index_map."""
@@ -187,6 +190,28 @@ class labelEncoder:
             second_labels[i] = label2
 
         return first_labels, second_labels
+    
+    def get_number_probabilities(self, pred_prob_tensor):
+        """
+        Converts the probability tensor for encoded labels to a tensor of probabilities for each individual number.
+
+        Parameters:
+        - pred_prob_tensor: Tensor of shape (batch_size, encoded_label_space_size), representing
+                            probabilities for each encoded label.
+        - num_classes: Number of original classes (numbers) in the dataset.
+
+        Returns:
+        - Tensor of shape (batch_size, num_classes + 1) with the probability of each individual number.
+        """
+        batch_size = pred_prob_tensor.shape[0]
+        number_probs = torch.zeros(batch_size, self.num_classes + 1)
+
+        # Map each encoded label's probability to both of its numbers
+        for encoded_label, (num1, num2) in self.reverse_map.items():
+            number_probs[:, num1] += pred_prob_tensor[:, encoded_label]
+            number_probs[:, num2] += pred_prob_tensor[:, encoded_label]
+
+        return number_probs
 
     def get_new_label_space(self):
         """Returns the new label space."""
