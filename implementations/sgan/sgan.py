@@ -245,6 +245,7 @@ if __name__ == "__main__":
           #fake_aux_gt = Variable(LongTensor(batch_size).fill_(opt.num_classes), requires_grad=False)
                
           # Configure input
+          final_labels = Variable(torch.tensor(final_labels).type(LongTensor))
           final_labels1 = Variable(torch.tensor(final_labels1).type(LongTensor))
           final_labels2 = Variable(torch.tensor(final_labels2).type(LongTensor))
           
@@ -267,7 +268,8 @@ if __name__ == "__main__":
          # This commpresses (FAKE,2) and (2,FAKE) into one single label
           fake_aux_gt = encoder.encode_labels(fake_label_list, noise_label)  # Encode fake labels with noise labels
           fake_aux_gt1,fake_aux_gt2 = encoder.decode_labels(fake_aux_gt)
-         
+          
+          fake_aux_gt = Variable(LongTensor(fake_aux_gt))  
           fake_aux_gt1 = Variable(LongTensor(fake_aux_gt1))  
           fake_aux_gt2 = Variable(LongTensor(fake_aux_gt2))
 
@@ -286,20 +288,21 @@ if __name__ == "__main__":
 
           # Loss for real images
           real_pred, real_aux = discriminator(real_imgs)
-          real_aux1,real_aux2 = encoder.decode_labels(real_aux)
-          real_aux1 = Variable(torch.tensor(real_aux1).type(LongTensor))
-          real_aux2 = Variable(torch.tensor(real_aux2).type(LongTensor))
+          real_aux_individual_numbers= encoder.get_number_probabilities(real_aux)
+          #real_aux_individual_numbers = Variable(torch.tensor(real_aux_individual_numbers).type(LongTensor))
           
           
-          d_real_loss = (adversarial_loss(real_pred, valid)/2 + auxiliary_loss(real_aux1, final_labels1)/4 +  auxiliary_loss(real_aux2, final_labels2)/4) 
+          d_real_loss = (adversarial_loss(real_pred, valid)/2 + auxiliary_loss(real_aux_individual_numbers, final_labels1)/8 +  auxiliary_loss(real_aux_individual_numbers, final_labels2)/8 +  auxiliary_loss(real_aux, final_labels)/4)
 
           # Loss for fake images
           fake_pred, fake_aux = discriminator(gen_imgs.detach())
-          fake_aux1,fake_aux2 = encoder.decode_labels(fake_aux)
-          fake_aux1 = Variable(torch.tensor(fake_aux1).type(LongTensor))
-          fake_aux2 = Variable(torch.tensor(fake_aux2).type(LongTensor))
-
-          d_fake_loss = (adversarial_loss(fake_pred, fake)/2 + auxiliary_loss(fake_aux1, fake_aux_gt1)/4 +  auxiliary_loss(fake_aux2, fake_aux_gt2)/4)
+          fake_aux_individual_numbers= encoder.get_number_probabilities(fake_aux)
+ 
+        #   fake_aux1,fake_aux2 = encoder.decode_labels(fake_aux)
+        #   fake_aux1 = Variable(torch.tensor(fake_aux1).type(LongTensor))
+        #   fake_aux2 = Variable(torch.tensor(fake_aux2).type(LongTensor)) 
+          d_fake_loss = (adversarial_loss(real_pred, fake)/2 + auxiliary_loss(real_aux_individual_numbers, final_labels1)/8 +  auxiliary_loss(real_aux_individual_numbers, final_labels2)/8 +  auxiliary_loss(real_aux, fake_aux_gt)/4)
+          d_fake_loss = (adversarial_loss(fake_pred, fake)/2 + auxiliary_loss(fake_aux_individual_numbers, fake_aux_gt1)/8 +  auxiliary_loss(fake_aux_individual_numbers, fake_aux_gt2)/8 +  auxiliary_loss(fake_aux, fake_aux_gt)/4)
 
           # Total discriminator loss
           d_loss = (d_real_loss + d_fake_loss) / 2
