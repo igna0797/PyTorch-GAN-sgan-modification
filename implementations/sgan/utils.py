@@ -172,27 +172,6 @@ class labelEncoder:
                 # Handle the case where the tuple is not in index_map
                 raise ValueError(f"Tuple {tup} not found in index_map either way")
         return newLabel
-    def individual_number_prob(self, pred_prob_tensor):
-        """
-        Converts encoded label probabilities to number-level probabilities.
-
-        Parameters:
-        - pred_prob_tensor: Tensor (batch_size, encoded_label_space_size), softmax output from discriminator.
-
-        Returns:
-        - Tensor (batch_size, num_classes+1) with number probabilities.
-        """
-        batch_size = pred_prob_tensor.shape[0]
-        number_probs = torch.zeros(batch_size, self.num_classes + 1, device=pred_prob_tensor.device)
-
-      # Get decoded tuples from indices
-        decoded_pairs = self.decode_labels(list(range(pred_prob_tensor.shape[1])))
-
-        for encoded_label, (num1, num2) in enumerate(decoded_pairs):
-            number_probs[:, num1] += pred_prob_tensor[:, encoded_label]
-            number_probs[:, num2] += pred_prob_tensor[:, encoded_label]
-
-        return number_probs
 
     def decode_labels(self, encoded_labels):
         """Returns the original tuples based on the index_map."""
@@ -227,13 +206,14 @@ class labelEncoder:
         batch_size = pred_prob_tensor.shape[0]
         number_probs = torch.zeros(batch_size, self.num_classes + 1)
         number_probs = number_probs.to(pred_prob_tensor.device)
+
         # Map each encoded label's probability to both of its numbers
         for encoded_label, (num1, num2) in self.reverse_map.items():
             number_probs[:, num1] += pred_prob_tensor[:, encoded_label]
             number_probs[:, num2] += pred_prob_tensor[:, encoded_label]
 
         return number_probs
-
+    
     def get_new_label_space(self):
         """Returns the new label space."""
         return list(self.new_label_space)
