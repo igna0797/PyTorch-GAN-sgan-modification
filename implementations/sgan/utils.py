@@ -205,7 +205,7 @@ class labelEncoder:
         """
         batch_size = pred_prob_tensor.shape[0]
         number_probs = torch.zeros(batch_size, self.num_classes + 1)
-
+        number_probs = number_probs.to(pred_prob_tensor.device)
         # Map each encoded label's probability to both of its numbers
         for encoded_label, (num1, num2) in self.reverse_map.items():
             number_probs[:, num1] += pred_prob_tensor[:, encoded_label]
