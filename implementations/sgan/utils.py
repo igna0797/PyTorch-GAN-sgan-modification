@@ -147,7 +147,7 @@ class labelEncoder:
         self.new_label_space = it.combinations_with_replacement(possible_labels, 2)
         self.index_map = {}
         self.reverse_map = {}
-        for idx, tup in enumerate(it.combinations_with_replacement(possible_labels, 2)):
+        for idx, tup in enumerate(self.new_label_space):
             self.index_map[tup] = idx
             self.reverse_map[idx] = tup
         self.index_map.pop((num_classes,num_classes)) #Removing (FAKE, FAKE) as it is not a valid combination
