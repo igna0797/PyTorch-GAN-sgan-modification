@@ -213,10 +213,10 @@ class labelEncoder:
 
         return number_probs
     
-    def create_ground_truth_tensors(self, label1, label2):
+    def create_ground_truth_tensors(self, label1 : list , label2 : list = None) -> torch.tensor:
         """
         Creates two ground truth tensors for the given (label1, label2) pair.
-        If given only label1, it will try to decode it to label1 and label2.
+        If given only label1, it assumes it is encoded else it .
 
         For example, if the pair is (3,2):
         - Tensor A will have "1" at indices of pairs containing `label2` (2).
@@ -227,16 +227,22 @@ class labelEncoder:
         - gt_tensor_B: Tensor with 1s for pairs containing label1, else 0.
         """
         if label2 == None:
-            label1,label2 = self.decode_labels(label1)
-        num_pairs = self.number_of_outputs(self.num_classes)
-        gt_tensor_A = torch.zeros(num_pairs)
-        gt_tensor_B = torch.zeros(num_pairs)
-        
-        for (a, b), idx in self.index_map.items():
-            if label1 in (a, b):
-                gt_tensor_A[idx] = 1  # Tensor A matches pairs containing label2
-            if label2 in (a, b):
-                gt_tensor_B[idx] = 1  # Tensor B matches pairs containing label1
+            label1 , label2 = self.decode_labels(label1)
+                                                 
+        encodedLabel = zip(label1, label2)
+
+
+        num_pairs = self.number_of_outputs(self.num_classes)-1 # -1 because of the fake,fake class
+        #gives us a probability for each pair in the each of the labels of the batch
+        gt_tensor_A = torch.zeros(len(label1) , num_pairs)
+        gt_tensor_B = torch.zeros(len(label1) , num_pairs)
+
+        for i, (lbl1, lbl2) in enumerate(encodedLabel):
+            for (a, b), idx in self.index_map.items():
+                if lbl1 in (a, b):
+                    gt_tensor_A[i, idx] = 1  # Set to 1 if pair contains lbl2
+                if lbl2 in (a, b):
+                    gt_tensor_B[i, idx] = 1  # Set to 1 if pair contains lbl1
 
         return gt_tensor_A, gt_tensor_B
 
