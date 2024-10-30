@@ -212,6 +212,33 @@ class labelEncoder:
             number_probs[:, num2] += pred_prob_tensor[:, encoded_label]
 
         return number_probs
+    
+    def create_ground_truth_tensors(self, label1, label2):
+        """
+        Creates two ground truth tensors for the given (label1, label2) pair.
+        If given only label1, it will try to decode it to label1 and label2.
+
+        For example, if the pair is (3,2):
+        - Tensor A will have "1" at indices of pairs containing `label2` (2).
+        - Tensor B will have "1" at indices of pairs containing `label1` (3).
+
+        Returns:
+        - gt_tensor_A: Tensor with 1s for pairs containing label2, else 0.
+        - gt_tensor_B: Tensor with 1s for pairs containing label1, else 0.
+        """
+        if label2 == None:
+            label1,label2 = self.decode_labels(label1)
+        num_pairs = self.number_of_outputs(self.num_classes)
+        gt_tensor_A = torch.zeros(num_pairs)
+        gt_tensor_B = torch.zeros(num_pairs)
+        
+        for (a, b), idx in self.index_map.items():
+            if label1 in (a, b):
+                gt_tensor_A[idx] = 1  # Tensor A matches pairs containing label2
+            if label2 in (a, b):
+                gt_tensor_B[idx] = 1  # Tensor B matches pairs containing label1
+
+        return gt_tensor_A, gt_tensor_B
 
     def get_new_label_space(self):
         """Returns the new label space."""
