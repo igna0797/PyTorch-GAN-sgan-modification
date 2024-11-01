@@ -301,7 +301,6 @@ if __name__ == "__main__":
         #   fake_aux1,fake_aux2 = encoder.decode_labels(fake_aux)
         #   fake_aux1 = Variable(torch.tensor(fake_aux1).type(LongTensor))
         #   fake_aux2 = Variable(torch.tensor(fake_aux2).type(LongTensor)) 
-          d_fake_loss = (adversarial_loss(real_pred, fake)/2 + auxiliary_loss(real_aux_individual_numbers, final_labels1)/8 +  auxiliary_loss(real_aux_individual_numbers, final_labels2)/8 +  auxiliary_loss(real_aux, fake_aux_gt)/4)
           d_fake_loss = (adversarial_loss(fake_pred, fake)/2 + auxiliary_loss(fake_aux_individual_numbers, fake_aux_gt1)/8 +  auxiliary_loss(fake_aux_individual_numbers, fake_aux_gt2)/8 +  auxiliary_loss(fake_aux, fake_aux_gt)/4)
 
           # Total discriminator loss
