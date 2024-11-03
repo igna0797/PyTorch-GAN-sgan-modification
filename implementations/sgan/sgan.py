@@ -251,8 +251,7 @@ if __name__ == "__main__":
 
           real_imgs = Variable(torch.tensor(imgs).type(FloatTensor))
           final_labels = Variable(torch.tensor(final_labels).type(LongTensor))         
-          final_labels1 = Variable(torch.tensor(final_labels1).type(FloatTensor))
-          final_labels2 = Variable(torch.tensor(final_labels2).type(FloatTensor))      
+   
           # -----------------
           #  Train Generator
           # -----------------
@@ -291,15 +290,19 @@ if __name__ == "__main__":
           # Loss for real images
           real_pred, real_aux = discriminator(real_imgs)
           
-          
+          final_labels1 = final_labels1.to(real_aux.device)
+          final_labels2 = final_labels2.to(real_aux.device)
+
           #que el GT sea todos los que tienen un numero en particular
           
           d_real_loss = (adversarial_loss(real_pred, valid)/2 + partial_auxiliary_loss(real_aux, final_labels1)/8 +  partial_auxiliary_loss(real_aux, final_labels2)/8 +  auxiliary_loss(real_aux, final_labels)/4)
 
           # Loss for fake images
           fake_pred, fake_aux = discriminator(gen_imgs.detach())
-          fake_aux_individual_numbers= encoder.get_number_probabilities(fake_aux)
- 
+           
+          fake_aux_gt1 = fake_aux_gt1.to(fake_aux.device)
+          fake_aux_gt2 = fake_aux_gt2.to(fake_aux.device)
+            
         #   fake_aux1,fake_aux2 = encoder.decode_labels(fake_aux)
         #   fake_aux1 = Variable(torch.tensor(fake_aux1).type(LongTensor))
         #   fake_aux2 = Variable(torch.tensor(fake_aux2).type(LongTensor)) 
