@@ -294,20 +294,31 @@ if __name__ == "__main__":
           final_labels2 = final_labels2.to(real_aux.device)
 
           #que el GT sea todos los que tienen un numero en particular
-          
-          d_real_loss = (adversarial_loss(real_pred, valid)/2 + partial_auxiliary_loss(real_aux, final_labels1)/8 +  partial_auxiliary_loss(real_aux, final_labels2)/8 +  auxiliary_loss(real_aux, final_labels)/4)
+          d_adversarial_loss= adversarial_loss(real_pred, valid)
+          d_partial_auxiliary_loss_1 = partial_auxiliary_loss(real_aux, final_labels1)
+          d_partial_auxiliary_loss_2 = partial_auxiliary_loss(real_aux, final_labels2)
+          d_auxiliary_loss = auxiliary_loss(real_aux, final_labels)
+          d_real_loss = d_adversarial_loss/2 + d_partial_auxiliary_loss_1/8 +  d_partial_auxiliary_loss_2/8 +  d_auxiliary_loss/4
 
           # Loss for fake images
           fake_pred, fake_aux = discriminator(gen_imgs.detach())
-           
+
+          #fake_aux_gt are the all the correct guesses in witch the first number is correct
           fake_aux_gt1 = fake_aux_gt1.to(fake_aux.device)
           fake_aux_gt2 = fake_aux_gt2.to(fake_aux.device)
             
         #   fake_aux1,fake_aux2 = encoder.decode_labels(fake_aux)
         #   fake_aux1 = Variable(torch.tensor(fake_aux1).type(LongTensor))
         #   fake_aux2 = Variable(torch.tensor(fake_aux2).type(LongTensor)) 
-          d_fake_loss = (adversarial_loss(fake_pred, fake)/2 + partial_auxiliary_loss(fake_aux, fake_aux_gt1)/8 +  partial_auxiliary_loss(fake_aux, fake_aux_gt2)/8 +  auxiliary_loss(fake_aux, fake_aux_gt)/4)
-         
+
+        
+
+          d_adversarial_loss = adversarial_loss(fake_pred, fake)
+          d_partial_auxiliary_loss = partial_auxiliary_loss(fake_aux, fake_aux_gt1)
+          d_partial_auxiliary_loss = partial_auxiliary_loss(fake_aux, fake_aux_gt2)
+          d_auxiliary_loss = auxiliary_loss(fake_aux, fake_aux_gt)
+          d_fake_loss = (d_adversarial_loss/2 + d_partial_auxiliary_loss/8 + d_partial_auxiliary_loss/8 +  d_auxiliary_loss/4)
+          
 
           # Total discriminator loss
           d_loss = (d_real_loss + d_fake_loss) / 2
