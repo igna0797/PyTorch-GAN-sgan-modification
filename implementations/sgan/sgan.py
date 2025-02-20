@@ -306,12 +306,7 @@ if __name__ == "__main__":
           #fake_aux_gt are the all the correct guesses in witch the first number is correct
           fake_aux_gt1 = fake_aux_gt1.to(fake_aux.device)
           fake_aux_gt2 = fake_aux_gt2.to(fake_aux.device)
-            
-        #   fake_aux1,fake_aux2 = encoder.decode_labels(fake_aux)
-        #   fake_aux1 = Variable(torch.tensor(fake_aux1).type(LongTensor))
-        #   fake_aux2 = Variable(torch.tensor(fake_aux2).type(LongTensor)) 
-
-        
+                 
 
           d_adversarial_loss = adversarial_loss(fake_pred, fake)
           d_partial_auxiliary_loss = partial_auxiliary_loss(fake_aux, fake_aux_gt1)
