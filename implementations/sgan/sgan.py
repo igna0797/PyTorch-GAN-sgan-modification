@@ -277,7 +277,7 @@ if __name__ == "__main__":
           # Loss measures generator's ability to fool the discriminator
           validity, _ = discriminator(gen_imgs)
           g_loss = adversarial_loss(validity, valid)
-
+            
           g_loss.backward()
           optimizer_G.step()
 
@@ -300,6 +300,12 @@ if __name__ == "__main__":
           d_auxiliary_loss = auxiliary_loss(real_aux, final_labels)
           d_real_loss = d_adversarial_loss/2 + d_partial_auxiliary_loss_1/8 +  d_partial_auxiliary_loss_2/8 +  d_auxiliary_loss/4
 
+           print("Real losses:",
+              "Adv:", d_adversarial_loss.item(),
+              "Aux:", d_auxiliary_loss.item(),
+              "Part1:", d_partial_auxiliary_loss_1.item(),
+              "Part2:", d_partial_auxiliary_loss_2.item())           
+          
           # Loss for fake images
           fake_pred, fake_aux = discriminator(gen_imgs.detach())
 
@@ -314,10 +320,15 @@ if __name__ == "__main__":
           d_auxiliary_loss = auxiliary_loss(fake_aux, fake_aux_gt)
           d_fake_loss = (d_adversarial_loss/2 + d_partial_auxiliary_loss/8 + d_partial_auxiliary_loss/8 +  d_auxiliary_loss/4)
           
+          print("Fake losses:",
+                  "Adv:", adversarial_loss(fake_pred, fake).item(),
+                  "Aux:", auxiliary_loss(fake_aux, fake_aux_gt).item(),
+                  "Part1:", partial_auxiliary_loss(fake_aux, fake_aux_gt1).item(),
+                  "Part2:", partial_auxiliary_loss(fake_aux, fake_aux_gt2).item())
 
           # Total discriminator loss
           d_loss = (d_real_loss + d_fake_loss) / 2
-
+          
           # Calculate discriminator accuracy
           pred = np.concatenate([real_aux.data.cpu().numpy(), fake_aux.data.cpu().numpy()], axis=0)
           gt = np.concatenate([final_labels.data.cpu().numpy(), fake_aux_gt.data.cpu().numpy()], axis=0)
