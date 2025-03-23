@@ -300,7 +300,7 @@ if __name__ == "__main__":
           d_auxiliary_loss = auxiliary_loss(real_aux, final_labels)
           d_real_loss = d_adversarial_loss/2 + d_partial_auxiliary_loss_1/8 +  d_partial_auxiliary_loss_2/8 +  d_auxiliary_loss/4
 
-           print("Real losses:",
+          print("Real losses:",
               "Adv:", d_adversarial_loss.item(),
               "Aux:", d_auxiliary_loss.item(),
               "Part1:", d_partial_auxiliary_loss_1.item(),
