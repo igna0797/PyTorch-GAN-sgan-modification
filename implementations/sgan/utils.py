@@ -142,8 +142,9 @@ def add_lines(images,max_amount_lines=1, random_amount_lines=False):
 class labelEncoder:
     def __init__(self,num_classes):
         """Initialize the TupleIndexer with the second_iterable."""
+        self.num_classes = num_classes
         possible_labels = list(range(num_classes+1))
-        self.new_label_space = it.combinations_with_replacement(possible_labels, 2)
+        self.new_label_space = list(it.combinations_with_replacement(possible_labels, 2))
         self.index_map = {tup: idx for idx, tup in enumerate(self.new_label_space)}
 
     def encode_labels(self, label1 , label2 ) -> list :
@@ -165,7 +166,28 @@ class labelEncoder:
                 # Handle the case where the tuple is not in index_map
                 raise ValueError(f"Tuple {tup} not found in index_map either way")
         return newLabel
-    
+    def individual_number_prob(self, pred_prob_tensor):
+        """
+        Converts encoded label probabilities to number-level probabilities.
+
+        Parameters:
+        - pred_prob_tensor: Tensor (batch_size, encoded_label_space_size), softmax output from discriminator.
+
+        Returns:
+        - Tensor (batch_size, num_classes+1) with number probabilities.
+        """
+        batch_size = pred_prob_tensor.shape[0]
+        number_probs = torch.zeros(batch_size, self.num_classes + 1, device=pred_prob_tensor.device)
+
+      # Get decoded tuples from indices
+        decoded_pairs = self.decode_labels(list(range(pred_prob_tensor.shape[1])))
+
+        for encoded_label, (num1, num2) in enumerate(decoded_pairs):
+            number_probs[:, num1] += pred_prob_tensor[:, encoded_label]
+            number_probs[:, num2] += pred_prob_tensor[:, encoded_label]
+
+        return number_probs
+
     def decode_labels(self, encoded_labels):
         """Returns the original tuples based on the index_map."""
         return [list(self.new_label_space[idx]) for idx in encoded_labels]
