@@ -55,7 +55,7 @@ def evaluate_discriminator(discriminator: Discriminator, dataloader: DataLoader,
 
             validity, label_outputs = discriminator(images)
             label_outputs = Encoder.get_number_probabilities(label_outputs)
-            label_probabilities = label_outputs[:, :-1]  # Exclude the last value (label for 'real/fake')
+            label_probabilities = label_outputs[:, :-1]  # Exclude the last value (label for 'fake')
             predicted_labels = torch.argmax(label_probabilities, dim=1)
 
             correct_predictions += (predicted_labels == labels).sum().item()
