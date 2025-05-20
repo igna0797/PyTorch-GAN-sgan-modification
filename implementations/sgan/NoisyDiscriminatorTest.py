@@ -47,6 +47,7 @@ def evaluate_discriminator(discriminator: Discriminator, dataloader: DataLoader,
     """Evaluate the Discriminator on the dataset."""
     correct_predictions = 0
     total_samples = 0
+    falseNegatives  = 0
     i=0
 
     with torch.no_grad():
