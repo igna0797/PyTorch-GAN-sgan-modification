@@ -5,7 +5,7 @@ import pickle
 from torch.utils.data import DataLoader
 from torchvision import datasets
 from sgan import Discriminator
-from utils import parseArguments , NoiseAdder , get_opt_path
+from utils import parseArguments , NoiseAdder , get_opt_path , labelEncoder
 from torchvision.utils import save_image
 
 
@@ -53,16 +53,19 @@ def evaluate_discriminator(discriminator: Discriminator, dataloader: DataLoader,
         for images, labels in dataloader:
             images = images.to(device).float()  
             labels = labels.to(device)
+            Encoder=labelEncoder(num_classes=10)
             noisy_images, noise_labels = NoiseAdder.add_noise(images,opt)
 
             noise_labels = noise_labels.to(device) 
             noisy_images = noisy_images.to(device).float()  # Convert to float before feeding to the model    
 
-            _, label_outputs = discriminator(noisy_images)
-            label_probabilities = label_outputs[:, :-1]  # Exclude the last value (label for 'real/fake')
+            validity , label_outputs = discriminator(noisy_images)
+            label_outputs = Encoder.get_number_probabilities(label_outputs)
+            label_probabilities = label_outputs[:, :-1]  # Exclude the last value (label for 'fake')
             predicted_labels = torch.argmax(label_probabilities, dim=1)
 
             correct_predictions += torch.logical_or(predicted_labels == labels, predicted_labels == noise_labels).sum().item()
+            falseNegatives += torch.sum(validity == 0).item()
             total_samples += labels.size(0)
             if i == 0:
                 print(f'samples: {labels.size(0)}, labels size: {labels.size()}')
@@ -79,8 +82,9 @@ def evaluate_discriminator(discriminator: Discriminator, dataloader: DataLoader,
                     f.write(log_message + '\n')
 
     accuracy = 100 * correct_predictions / total_samples
-   
-    return accuracy
+    falseNegativesPerrcentage = (falseNegatives / total_samples) * 100
+
+    return accuracy , falseNegativesPerrcentage
 
 
 if __name__ == "__main__":
@@ -104,6 +108,7 @@ if __name__ == "__main__":
     discriminator = load_model(CallerOptions.weights_path, device)
 
     # Evaluate model
-    accuracy = evaluate_discriminator(discriminator, dataloader, device, opt)
+    accuracy , falseNegativesPerrcentage = evaluate_discriminator(discriminator, dataloader, device, opt)
 
     print(f"Discriminator accuracy on the MNIST dataset: {accuracy:.2f}%")
+    print(f"False Negatives Percentage: {falseNegativesPerrcentage:.2f}%")
