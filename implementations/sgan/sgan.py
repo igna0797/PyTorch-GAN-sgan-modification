@@ -241,7 +241,6 @@ if __name__ == "__main__":
           #Getting the fake + noise labels
           fake_label_list = [opt.num_classes] * batch_size
           
-         #TODO check if its ok
           # Adversarial ground truths
           valid = Variable(FloatTensor(batch_size, 1).fill_(1.0), requires_grad=False)
           fake = Variable(FloatTensor(batch_size, 1).fill_(0.0), requires_grad=False)

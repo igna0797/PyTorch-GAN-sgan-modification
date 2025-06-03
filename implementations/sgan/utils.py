@@ -41,6 +41,7 @@ def get_directory(__file__,max_lines=3 , random_amount_lines = False):
     directory = os.path.join(script_dir, "../../trainings/n-lineas_" + str(max_lines) + "_Random_"+ str(random_amount_lines))    
     #directory = "../../../content/drive/MyDrive/Redes neuronales/Monografia/n-lineas_" + str(opt.max_lines) + "_Random_"+ str(opt.random_amount_lines)
     return directory
+    """
 def get_opt_path(__file__ , weights_path):
     abs_dir = os.path.dirname(os.path.abspath(__file__))
 
