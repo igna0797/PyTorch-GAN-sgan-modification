@@ -35,6 +35,13 @@ def parseArguments():
     opt = parser.parse_known_args()[0]
     print(opt)
     return opt
+
+def get_directory(__file__,output):
+  script_dir = os.path.dirname(os.path.abspath(__file__))
+  output_directory = os.path.basename(os.path.normpath(output))
+  directory = os.path.join(script_dir, "../../trainings/" + output_directory)   
+  return directory
+"""
 def get_directory(__file__,max_lines=3 , random_amount_lines = False):
     script_dir = os.path.dirname(os.path.abspath(__file__))
     # Define the relative path to the pickle file
@@ -250,6 +257,12 @@ class labelEncoder:
     def get_new_label_space(self):
         """Returns the new label space."""
         return list(self.new_label_space)
+    def get_indexMap(self):
+        """Returns the index map."""
+        return self.index_map
+    def get_reverseMap(self):
+        """Returns the reverse map"""
+        return self.reverse_map
     
     @staticmethod
     def number_of_outputs(num_classes):

@@ -25,12 +25,13 @@ print(f"Grapphics card accelertation: {cuda}")
 if __name__ == "__main__":
     opt = parseArguments()
     # Get the directory where the script is located
-    directory = get_directory(__file__, opt.max_lines , opt.random_amount_lines)
+    directory = get_directory(__file__, opt.Training_output)
     optionsPath = os.path.join(directory,"opt.pkl")
     #Save options
     os.makedirs(os.path.dirname(optionsPath), exist_ok=True)  # Create the directory if it doesn't exist
     with open(optionsPath,"wb") as f:
        pickle.dump(opt,f)
+       print(f"options saved on{f.name}")
 else:
     #Load options    
     #directory = get_directory(__file__,3,False)
@@ -288,7 +289,14 @@ if __name__ == "__main__":
 
           # Loss for real images
           real_pred, real_aux = discriminator(real_imgs)
-          
+
+          #logs
+          answer= torch.argmax(real_aux[0])
+          print(answer)
+          decoded_answer = list(encoder.decode_labels([answer.item()]))
+          print(decoded_answer)
+        
+
           final_labels1 = final_labels1.to(real_aux.device)
           final_labels2 = final_labels2.to(real_aux.device)
 
@@ -298,13 +306,13 @@ if __name__ == "__main__":
           d_partial_auxiliary_loss_2 = partial_auxiliary_loss(real_aux, final_labels2)
           d_auxiliary_loss = auxiliary_loss(real_aux, final_labels)
           d_real_loss = d_adversarial_loss/2 + d_partial_auxiliary_loss_1/8 +  d_partial_auxiliary_loss_2/8 +  d_auxiliary_loss/4
-
+          """
           print("Real losses:",
               "Adv:", d_adversarial_loss.item(),
               "Aux:", d_auxiliary_loss.item(),
               "Part1:", d_partial_auxiliary_loss_1.item(),
               "Part2:", d_partial_auxiliary_loss_2.item())           
-          
+          """
           # Loss for fake images
           fake_pred, fake_aux = discriminator(gen_imgs.detach())
 
@@ -318,13 +326,13 @@ if __name__ == "__main__":
           d_partial_auxiliary_loss = partial_auxiliary_loss(fake_aux, fake_aux_gt2)
           d_auxiliary_loss = auxiliary_loss(fake_aux, fake_aux_gt)
           d_fake_loss = (d_adversarial_loss/2 + d_partial_auxiliary_loss/8 + d_partial_auxiliary_loss/8 +  d_auxiliary_loss/4)
-          
-          print("Fake losses:",
+          #Print losses
+          """print("Fake losses:",
                   "Adv:", adversarial_loss(fake_pred, fake).item(),
                   "Aux:", auxiliary_loss(fake_aux, fake_aux_gt).item(),
                   "Part1:", partial_auxiliary_loss(fake_aux, fake_aux_gt1).item(),
                   "Part2:", partial_auxiliary_loss(fake_aux, fake_aux_gt2).item())
-
+          """
           # Total discriminator loss
           d_loss = (d_real_loss + d_fake_loss) / 2
           
@@ -373,11 +381,13 @@ if __name__ == "__main__":
               'Discriminator Loss': d_loss.item(),
               'Discriminator Accuarcy' : 100 * d_acc,
               'Generator Loss': g_loss.item(),
+              
           })
+                # Save generator weights
+          torch.save(generator.state_dict(), directory + "/generator_weights.pth")
+          # Save discriminator weights
+          torch.save(discriminator.state_dict(), directory +"/discriminator_weights.pth")
+
 
 #loss_log.close()
 
-  # Save generator weights
-  torch.save(generator.state_dict(), directory + "/generator_weights.pth")
-  # Save discriminator weights
-  torch.save(discriminator.state_dict(), directory +"/discriminator_weights.pth")
