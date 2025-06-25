@@ -81,6 +81,9 @@ class NoiseAdder:
         else:
             raise ValueError(f"Unknown noise type: {args.noise_type}")
 
+def _logsumexp_max(a, b, alpha=10):
+    stacked = torch.stack([a, b], dim=0)  # shape: (2, ...)
+    return (1 / alpha) * torch.logsumexp(alpha * stacked, dim=0)
 
 def get_mnist_loader(images, args):
     os.makedirs("../../data/mnist2", exist_ok=True)
@@ -103,13 +106,13 @@ def add_mnist_noise(images, mnist_loader):
         #print(f"imagenes {images.shape}")
         noise_images = noise_images[0]
         noise_images = noise_images.expand_as(images)  # Expand to match input image channels
-        noise_images = torch.maximum(noise_images , images) 
+        noise_images = _logsumexp_max(noise_images , images) 
     elif len(images.shape) == 4:  # Batch image case
         next_data = next(iter(mnist_loader))
         noise_images, noise_labels  = next_data
         noise_images = noise_images.to(images.device).float()  # Convert to float and match device
         noise_images = noise_images.expand_as(images)  # Expand to match input image channels
-        noise_images = torch.maximum(noise_images , images)
+        noise_images = _logsumexp_max(noise_images , images)
 
     return noise_images , noise_labels 
 
