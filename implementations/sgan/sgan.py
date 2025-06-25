@@ -289,13 +289,13 @@ if __name__ == "__main__":
 
           # Loss for real images
           real_pred, real_aux = discriminator(real_imgs)
-
-          #logs
+        
+          """#logs
           answer= torch.argmax(real_aux[0])
           print(answer)
           decoded_answer = list(encoder.decode_labels([answer.item()]))
           print(decoded_answer)
-        
+          """
 
           final_labels1 = final_labels1.to(real_aux.device)
           final_labels2 = final_labels2.to(real_aux.device)
