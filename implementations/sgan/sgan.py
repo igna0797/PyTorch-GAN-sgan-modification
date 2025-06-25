@@ -384,9 +384,9 @@ if __name__ == "__main__":
               
           })
                 # Save generator weights
-          torch.save(generator.state_dict(), directory + "/generator_weights.pth")
-          # Save discriminator weights
-          torch.save(discriminator.state_dict(), directory +"/discriminator_weights.pth")
+      torch.save(generator.state_dict(), directory + "/generator_weights.pth")
+      # Save discriminator weights
+      torch.save(discriminator.state_dict(), directory +"/discriminator_weights.pth")
 
 
 #loss_log.close()
