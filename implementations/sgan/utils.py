@@ -27,6 +27,7 @@ def parseArguments():
     parser.add_argument("--random_amount_lines", type=bool, default= False , help="if false always maximum amount")
     parser.add_argument("--image_output" ,type=str ,help="Directory to store the images generated during training")
     parser.add_argument("--Training_output" ,type=str ,help="Directory to store the training")
+    parser.add_argument("--noise_add_function",type=str,choices = ["log_exp_sum" , "maxpool"],default="maxpool",help="Function for adding nosie 'log_exp_sum' to make gradients flow or 'maxpool' for cuting noise prevalent gradients Default:maxpool",)
 # This is for loading a already done model
     parser.add_argument("-w ", "--weights_path", type=str, help="directory for the weigths of the generator")
     parser.add_argument("-o ", "--output_path", type=str, default="images/", help="directory for the Image returned by the generator")
@@ -67,6 +68,12 @@ class NoiseAdder:
     def add_noise(images, args):
         """Add noise to the images based on the specified noise type."""
         
+        #In case opt is missing the argument i add default value,  it should not go in necver this is for legacy purpoose
+        if not hasattr(args,"noise_add_function"):
+            args.noise_add_function = "maxpool"
+            print("log: opt is missing noise_add_function defaulting to maxpool")
+        
+        
         if args.noise_type == "lines":  # Lines noise
             return add_lines(images, max_amount_lines=args.max_lines, random_amount_lines=args.random_amount_lines)
         
@@ -76,7 +83,7 @@ class NoiseAdder:
                 NoiseAdder.mnist_loader = get_mnist_loader(images, args)
             
             # Add MNIST noise to the images
-            return add_mnist_noise(images, NoiseAdder.mnist_loader)
+            return add_mnist_noise(images, NoiseAdder.mnist_loader ,  args.noise_add_function)
         
         else:
             raise ValueError(f"Unknown noise type: {args.noise_type}")
@@ -95,7 +102,7 @@ def get_mnist_loader(images, args):
     mnist_data = datasets.MNIST(root="../../data/mnist2", train=True, download=True, transform=transform)
     return torch.utils.data.DataLoader(mnist_data, batch_size=images.size(0), shuffle=True,drop_last=True)
     
-def add_mnist_noise(images, mnist_loader):
+def add_mnist_noise(images, mnist_loader,noise_add_function = "maxpool"):
     if len(images.shape) == 3:# Single image case
         next_data = next(iter(mnist_loader))
         #sample_images, _ = next_data
@@ -106,7 +113,13 @@ def add_mnist_noise(images, mnist_loader):
         #print(f"imagenes {images.shape}")
         noise_images = noise_images[0]
         noise_images = noise_images.expand_as(images)  # Expand to match input image channels
-        noise_images = _logsumexp_max(noise_images , images) 
+        if noise_add_function == "maxpool":
+            noise_images = torch.maximum(noise_images , images)               
+        elif noise_add_function == "log_exp_sum":
+            noise_images = _logsumexp_max(noise_images , images) 
+        else:
+            raise ValueError(f"Unknown noise_add_function: '{noise_add_function}'. "
+                     "Expected 'maxpool' or 'log_exp_sum'.") 
     elif len(images.shape) == 4:  # Batch image case
         next_data = next(iter(mnist_loader))
         noise_images, noise_labels  = next_data
