@@ -143,7 +143,7 @@ if __name__ == "__main__":
           train=True,
           download=True,
           transform=transforms.Compose(
-              [transforms.Resize(opt.img_size), transforms.ToTensor(), transforms.Lambda(lambda x: NoiseAdder.add_noise(x,opt)) ,transforms.Normalize([0.5], [0.5] )]
+              [transforms.Resize(opt.img_size), transforms.ToTensor(), transforms.Normalize([0.5], [0.5] )]
           ),
       ),
       batch_size=opt.batch_size,
@@ -224,6 +224,7 @@ if __name__ == "__main__":
           current_batch = i
           current_epoch = epoch
           batch_size = imgs.shape[0]
+          imgs, _ = NoiseAdder.add_noise(imgs,opt)
 
           # Adversarial ground truths
           valid = Variable(FloatTensor(batch_size, 1).fill_(1.0), requires_grad=False)
@@ -245,7 +246,7 @@ if __name__ == "__main__":
 
           # Generate a batch of images
           gen_imgs = generator(z)
-          gen_imgs = NoiseAdder.add_noise(gen_imgs, opt)
+          gen_imgs, _ = NoiseAdder.add_noise(gen_imgs, opt)
           # Loss measures generator's ability to fool the discriminator
           validity, _ = discriminator(gen_imgs)
           g_loss = adversarial_loss(validity, valid)
