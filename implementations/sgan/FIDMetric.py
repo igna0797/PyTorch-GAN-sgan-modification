@@ -4,7 +4,6 @@ from torchvision.utils import save_image
 import argparse
 import pickle
 
-from fid_eval import compute_fid
 
 from sgan import Generator
 from utils import parseArguments, NoiseAdder, get_opt_path, labelEncoder
