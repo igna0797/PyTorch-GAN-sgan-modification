@@ -22,7 +22,7 @@ def generate_images_to_folder(generator, latent_dim, batch_size, num_images, sav
 
     with torch.no_grad():
         for i in range(n_batches):
-            z = Variable(FloatTensor(np.random.normal(0, 1, (batch_size, opt.latent_dim))))
+            z = torch.randn(batch_size, latent_dim, device=device)
             gen_imgs = generator(z)
             for j in range(batch_size):
                 save_path = os.path.join(save_folder, f"img_{i * batch_size + j:05d}.png")
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     print(gen_output_dir)
     print(Real_output_dir)
     
-    generator_weights_path = os.path.join(abs_dir, opt.weights_path)
+    generator_weights_path = os.path.join(abs_dir, CallerOptions.weights_path)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -80,6 +80,3 @@ if __name__ == "__main__":
     save_real_images_to_folder(dataloader, Real_output_dir, num_images = 10000)
   
 
-    # Compute FID
-    fid = compute_fid(Real_output_dir, output_dir, device=device)
-    print(f"FID: {fid:.2f}")
