@@ -154,7 +154,6 @@ if __name__ == "__main__":
       batch_size=opt.batch_size,
       drop_last=True,
       shuffle=True,
-      drop_last=True
   )
 
 
