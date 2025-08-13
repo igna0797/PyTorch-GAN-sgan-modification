@@ -27,6 +27,7 @@ def parseArguments():
     parser.add_argument("--random_amount_lines", type=bool, default= False , help="if false always maximum amount")
     parser.add_argument("--image_output" ,type=str ,help="Directory to store the images generated during training")
     parser.add_argument("--Training_output" ,type=str ,help="Directory to store the training")
+    parser.add_argument("--partialMatchFlag", type=bool, default=True, help="To use the partial match when comparing discriminator and generator") 
 # This is for loading a already done model
     parser.add_argument("-w ", "--weights_path", type=str, help="directory for the weigths of the generator")
     parser.add_argument("-o ", "--output_path", type=str, default="images/", help="directory for the Image returned by the generator")
