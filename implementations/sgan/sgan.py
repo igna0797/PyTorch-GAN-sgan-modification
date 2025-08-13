@@ -290,50 +290,58 @@ if __name__ == "__main__":
 
           # Loss for real images
           real_pred, real_aux = discriminator(real_imgs)
-        
-          """#logs
-          answer= torch.argmax(real_aux[0])
-          print(answer)
-          decoded_answer = list(encoder.decode_labels([answer.item()]))
-          print(decoded_answer)
-          """
+          if opt.partialMatchFlag :
+            """#logs
+            answer= torch.argmax(real_aux[0])
+            print(answer)
+            decoded_answer = list(encoder.decode_labels([answer.item()]))
+            print(decoded_answer)
+            """
 
-          final_labels1 = final_labels1.to(real_aux.device)
-          final_labels2 = final_labels2.to(real_aux.device)
+            final_labels1 = final_labels1.to(real_aux.device)
+            final_labels2 = final_labels2.to(real_aux.device)
 
-          #que el GT sea todos los que tienen un numero en particular
-          d_adversarial_loss= adversarial_loss(real_pred, valid)
-          d_partial_auxiliary_loss_1 = partial_auxiliary_loss(real_aux, final_labels1)
-          d_partial_auxiliary_loss_2 = partial_auxiliary_loss(real_aux, final_labels2)
-          d_auxiliary_loss = auxiliary_loss(real_aux, final_labels)
-          d_real_loss = d_adversarial_loss/2 + d_partial_auxiliary_loss_1/8 +  d_partial_auxiliary_loss_2/8 +  d_auxiliary_loss/4
-          """
-          print("Real losses:",
-              "Adv:", d_adversarial_loss.item(),
-              "Aux:", d_auxiliary_loss.item(),
-              "Part1:", d_partial_auxiliary_loss_1.item(),
-              "Part2:", d_partial_auxiliary_loss_2.item())           
-          """
+            #que el GT sea todos los que tienen un numero en particular
+            d_adversarial_loss= adversarial_loss(real_pred, valid)
+            d_partial_auxiliary_loss_1 = partial_auxiliary_loss(real_aux, final_labels1)
+            d_partial_auxiliary_loss_2 = partial_auxiliary_loss(real_aux, final_labels2)
+            d_auxiliary_loss = auxiliary_loss(real_aux, final_labels)
+            d_real_loss = d_adversarial_loss/2 + d_partial_auxiliary_loss_1/8 +  d_partial_auxiliary_loss_2/8 +  d_auxiliary_loss/4
+            """
+            print("Real losses:",
+                "Adv:", d_adversarial_loss.item(),
+                "Aux:", d_auxiliary_loss.item(),
+                "Part1:", d_partial_auxiliary_loss_1.item(),
+                "Part2:", d_partial_auxiliary_loss_2.item())           
+            """
+          else:
+                d_real_loss = (adversarial_loss(real_pred, valid) + auxiliary_loss(real_aux, final_labels)) / 2
+
           # Loss for fake images
           fake_pred, fake_aux = discriminator(gen_imgs.detach())
 
-          #fake_aux_gt are the all the correct guesses in witch the first number is correct
-          fake_aux_gt1 = fake_aux_gt1.to(fake_aux.device)
-          fake_aux_gt2 = fake_aux_gt2.to(fake_aux.device)
-                 
+          if opt.partialMatchFlag :
+                #fake_aux_gt are the all the correct guesses in witch the first number is correct
+                fake_aux_gt1 = fake_aux_gt1.to(fake_aux.device)
+                fake_aux_gt2 = fake_aux_gt2.to(fake_aux.device)
+                        
 
-          d_adversarial_loss = adversarial_loss(fake_pred, fake)
-          d_partial_auxiliary_loss = partial_auxiliary_loss(fake_aux, fake_aux_gt1)
-          d_partial_auxiliary_loss = partial_auxiliary_loss(fake_aux, fake_aux_gt2)
-          d_auxiliary_loss = auxiliary_loss(fake_aux, fake_aux_gt)
-          d_fake_loss = (d_adversarial_loss/2 + d_partial_auxiliary_loss/8 + d_partial_auxiliary_loss/8 +  d_auxiliary_loss/4)
-          #Print losses
-          """print("Fake losses:",
-                  "Adv:", adversarial_loss(fake_pred, fake).item(),
-                  "Aux:", auxiliary_loss(fake_aux, fake_aux_gt).item(),
-                  "Part1:", partial_auxiliary_loss(fake_aux, fake_aux_gt1).item(),
-                  "Part2:", partial_auxiliary_loss(fake_aux, fake_aux_gt2).item())
-          """
+                d_adversarial_loss = adversarial_loss(fake_pred, fake)
+                d_partial_auxiliary_loss = partial_auxiliary_loss(fake_aux, fake_aux_gt1)
+                d_partial_auxiliary_loss = partial_auxiliary_loss(fake_aux, fake_aux_gt2)
+                d_auxiliary_loss = auxiliary_loss(fake_aux, fake_aux_gt)
+                d_fake_loss = (d_adversarial_loss/2 + d_partial_auxiliary_loss/8 + d_partial_auxiliary_loss/8 +  d_auxiliary_loss/4)
+                #Print losses
+                """print("Fake losses:",
+                        "Adv:", adversarial_loss(fake_pred, fake).item(),
+                        "Aux:", auxiliary_loss(fake_aux, fake_aux_gt).item(),
+                        "Part1:", partial_auxiliary_loss(fake_aux, fake_aux_gt1).item(),
+                        "Part2:", partial_auxiliary_loss(fake_aux, fake_aux_gt2).item())
+                """
+          else:
+                d_fake_loss = (adversarial_loss(fake_pred, fake) + auxiliary_loss(fake_aux, fake_aux_gt)) / 2
+
+              
           # Total discriminator loss
           d_loss = (d_real_loss + d_fake_loss) / 2
           
