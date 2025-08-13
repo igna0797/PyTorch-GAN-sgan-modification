@@ -12,3 +12,5 @@ implementations/*/saved_models
 images
 
 __pycache__
+*.swp
+
