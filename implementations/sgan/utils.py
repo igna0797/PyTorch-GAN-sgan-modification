@@ -2,6 +2,8 @@ import argparse
 import os
 import numpy as np
 import torch
+import itertools as it
+
 from torchvision import transforms, datasets
 from torchvision.utils import save_image 
 
@@ -33,12 +35,20 @@ def parseArguments():
     opt = parser.parse_known_args()[0]
     print(opt)
     return opt
+
+def get_directory(__file__,output):
+  script_dir = os.path.dirname(os.path.abspath(__file__))
+  output_directory = os.path.basename(os.path.normpath(output))
+  directory = os.path.join(script_dir, "../../trainings/" + output_directory)   
+  return directory
+"""
 def get_directory(__file__,max_lines=3 , random_amount_lines = False):
     script_dir = os.path.dirname(os.path.abspath(__file__))
     # Define the relative path to the pickle file
     directory = os.path.join(script_dir, "../../trainings/n-lineas_" + str(max_lines) + "_Random_"+ str(random_amount_lines))    
     #directory = "../../../content/drive/MyDrive/Redes neuronales/Monografia/n-lineas_" + str(opt.max_lines) + "_Random_"+ str(opt.random_amount_lines)
     return directory
+    """
 def get_opt_path(__file__ , weights_path):
     abs_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -80,7 +90,7 @@ def get_mnist_loader(images, args):
             transforms.Normalize([0.5], [0.5] )
         ])
     mnist_data = datasets.MNIST(root="../../data/mnist2", train=True, download=True, transform=transform)
-    return torch.utils.data.DataLoader(mnist_data, batch_size=images.size(0), shuffle=True)
+    return torch.utils.data.DataLoader(mnist_data, batch_size=images.size(0), shuffle=True,drop_last=True)
     
 def add_mnist_noise(images, mnist_loader):
     if len(images.shape) == 3:# Single image case
@@ -135,3 +145,127 @@ def add_lines(images,max_amount_lines=1, random_amount_lines=False):
             images_with_lines[i, :, :, vertical_line_pos] = 1  # Change pixel values to black
 
     return images_with_lines
+
+
+class labelEncoder:
+    def __init__(self,num_classes):
+        """Initialize the TupleIndexer with the second_iterable."""
+        self.num_classes = num_classes 
+        possible_labels = list(range(num_classes+1))
+        self.new_label_space = it.combinations_with_replacement(possible_labels, 2)
+        self.index_map = {}
+        self.reverse_map = {}
+        for idx, tup in enumerate(self.new_label_space):
+            self.index_map[tup] = idx
+            self.reverse_map[idx] = tup
+        self.index_map.pop((num_classes,num_classes)) #Removing (FAKE, FAKE) as it is not a valid combination
+        self.reverse_map.pop(len(self.index_map))  # Removing (FAKE, FAKE) as it is not a valid combination
+
+    def encode_labels(self, label1 , label2 ) -> list :
+        """Returns indices of tuples in first_list based on the index_map."""
+        if isinstance(label1, torch.Tensor):
+            label1 = label1.tolist()
+        if isinstance(label2, torch.Tensor):
+            label2 = label2.tolist()
+
+        combined_labels= zip(label2,label1)
+        newLabel = []
+        for tup in combined_labels:
+            if tup in self.index_map:
+                newLabel.append(self.index_map[tup])
+            elif (tup[1], tup[0]) in self.index_map:
+                # Find the original index of the swapped tuple
+                newLabel.append(self.index_map[(tup[1], tup[0])])
+            else:
+                # Handle the case where the tuple is not in index_map
+                raise ValueError(f"Tuple {tup} not found in index_map either way")
+        return newLabel
+    
+    def decode_labels(self, encoded_labels):
+        """Returns the original tuples based on the index_map."""
+        if isinstance(encoded_labels, torch.Tensor):
+            encoded_labels = encoded_labels.tolist()
+        
+        num_labels = len(encoded_labels)
+        # Pre-allocate lists with the correct size for efficiency
+        first_labels = [None] * num_labels
+        second_labels = [None] * num_labels
+
+        # Fill both lists in a single pass
+        for i, idx in enumerate(encoded_labels):
+            label1, label2 = self.reverse_map[idx]  # Unpack tuple
+            first_labels[i] = label1
+            second_labels[i] = label2
+
+        return first_labels, second_labels
+    
+    def get_number_probabilities(self, pred_prob_tensor):
+        """
+        Converts the probability tensor for encoded labels to a tensor of probabilities for each individual number.
+
+        Parameters:
+        - pred_prob_tensor: Tensor of shape (batch_size, encoded_label_space_size), representing
+                            probabilities for each encoded label.
+        - num_classes: Number of original classes (numbers) in the dataset.
+
+        Returns:
+        - Tensor of shape (batch_size, num_classes + 1) with the probability of each individual number.
+        """
+        batch_size = pred_prob_tensor.shape[0]
+        number_probs = torch.zeros(batch_size, self.num_classes + 1)
+        number_probs = number_probs.to(pred_prob_tensor.device)
+        # Map each encoded label's probability to both of its numbers
+        for encoded_label, (num1, num2) in self.reverse_map.items():
+            number_probs[:, num1] += pred_prob_tensor[:, encoded_label]
+            number_probs[:, num2] += pred_prob_tensor[:, encoded_label]
+
+        return number_probs
+    
+    def create_ground_truth_tensors(self, label1 : list , label2 : list = None) -> torch.tensor:
+        """
+        Creates two ground truth tensors for the given (label1, label2) pair.
+        If given only label1, it assumes it is encoded else it .
+
+        For example, if the pair is (3,2):
+        - Tensor A will have "1" at indices of pairs containing `label2` (2).
+        - Tensor B will have "1" at indices of pairs containing `label1` (3).
+
+        Returns:
+        - gt_tensor_A: Tensor with 1s for pairs containing label2, else 0.
+        - gt_tensor_B: Tensor with 1s for pairs containing label1, else 0.
+        """
+        if label2 == None:
+            label1 , label2 = self.decode_labels(label1)
+                                                 
+        encodedLabel = zip(label1, label2)
+
+
+        num_pairs = self.number_of_outputs(self.num_classes)-1 # -1 because of the fake,fake class
+        #gives us a probability for each pair in the each of the labels of the batch
+        gt_tensor_A = torch.zeros(len(label1) , num_pairs)
+        gt_tensor_B = torch.zeros(len(label1) , num_pairs)
+
+        for i, (lbl1, lbl2) in enumerate(encodedLabel):
+            for (a, b), idx in self.index_map.items():
+                if lbl1 in (a, b):
+                    gt_tensor_A[i, idx] = 1  # Set to 1 if pair contains lbl2
+                if lbl2 in (a, b):
+                    gt_tensor_B[i, idx] = 1  # Set to 1 if pair contains lbl1
+
+        return gt_tensor_A, gt_tensor_B
+
+    def get_new_label_space(self):
+        """Returns the new label space."""
+        return list(self.new_label_space)
+    def get_indexMap(self):
+        """Returns the index map."""
+        return self.index_map
+    def get_reverseMap(self):
+        """Returns the reverse map"""
+        return self.reverse_map
+    
+    @staticmethod
+    def number_of_outputs(num_classes):
+        """Returns the number of possible outputs based on num_classes. assuming we will have 2 labels"""
+        return (num_classes + 1) * (num_classes + 2) // 2
+

@@ -15,7 +15,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch
 
-from utils import parseArguments , get_directory , get_opt_path , NoiseAdder
+from utils import parseArguments , get_directory , get_opt_path , NoiseAdder, labelEncoder
 
 os.makedirs("images", exist_ok=True)
 global cuda
@@ -25,12 +25,13 @@ print(f"Grapphics card accelertation: {cuda}")
 if __name__ == "__main__":
     opt = parseArguments()
     # Get the directory where the script is located
-    directory = get_directory(__file__, opt.max_lines , opt.random_amount_lines)
+    directory = get_directory(__file__, opt.Training_output)
     optionsPath = os.path.join(directory,"opt.pkl")
     #Save options
     os.makedirs(os.path.dirname(optionsPath), exist_ok=True)  # Create the directory if it doesn't exist
     with open(optionsPath,"wb") as f:
        pickle.dump(opt,f)
+       print(f"options saved on{f.name}")
 else:
     #Load options    
     #directory = get_directory(__file__,3,False)
@@ -104,9 +105,12 @@ class Discriminator(nn.Module):
         # The height and width of downsampled image
         ds_size = opt.img_size // 2 ** 4
 
+        #number of classes we will output when we combine both labels
+        n_outputs = labelEncoder.number_of_outputs(opt.num_classes) - 1 #substracting 1 because FAKE FAKE is not a valid output
+
         # Output layers
         self.adv_layer = nn.Sequential(nn.Linear(128 * ds_size ** 2, 1), nn.Sigmoid())
-        self.aux_layer = nn.Sequential(nn.Linear(128 * ds_size ** 2, opt.num_classes + 1), nn.Softmax())
+        self.aux_layer = nn.Sequential(nn.Linear(128 * ds_size ** 2, n_outputs), nn.Softmax())
 
     def forward(self, img):
         out = self.conv_blocks(img)
@@ -124,6 +128,7 @@ if __name__ == "__main__":
   # Loss functions
   adversarial_loss = torch.nn.BCELoss()
   auxiliary_loss = torch.nn.CrossEntropyLoss()
+  partial_auxiliary_loss = torch.nn.BCEWithLogitsLoss()
 
   # Initialize generator and discriminator
   generator = Generator()
@@ -143,12 +148,13 @@ if __name__ == "__main__":
           train=True,
           download=True,
           transform=transforms.Compose(
-              [transforms.Resize(opt.img_size), transforms.ToTensor(), transforms.Normalize([0.5], [0.5] )]
+              [transforms.Resize(opt.img_size), transforms.ToTensor(),transforms.Normalize([0.5], [0.5])]
           ),
       ),
       batch_size=opt.batch_size,
       drop_last=True,
       shuffle=True,
+      drop_last=True
   )
 
 
@@ -212,7 +218,7 @@ if __name__ == "__main__":
 
   # Initialize an empty list to collect loss data
   loss_data = []
-
+  encoder = labelEncoder(opt.num_classes)
   # Define the directory where you want to save images
   if opt.image_output is None:
     image_dir = directory + "/training/images"
@@ -225,17 +231,28 @@ if __name__ == "__main__":
           current_batch = i
           current_epoch = epoch
           batch_size = imgs.shape[0]
-          imgs, _ = NoiseAdder.add_noise(imgs,opt)
+          imgs, noise_label = NoiseAdder.add_noise(imgs,opt)
+          if opt.partialMatchFlag :
+            # This commpresses (1,2) and (2,1) into one single label
+            final_labels = encoder.encode_labels(labels, noise_label)
+            final_labels1,final_labels2 = encoder.create_ground_truth_tensors(final_labels)
 
+            #final_labels1,final_labels2 = encoder.decode_labels(final_labels)
+
+
+            #Getting the fake + noise labels
+            fake_label_list = [opt.num_classes] * batch_size
+          
           # Adversarial ground truths
           valid = Variable(FloatTensor(batch_size, 1).fill_(1.0), requires_grad=False)
           fake = Variable(FloatTensor(batch_size, 1).fill_(0.0), requires_grad=False)
-          fake_aux_gt = Variable(LongTensor(batch_size).fill_(opt.num_classes), requires_grad=False)
-
+          #fake_aux_gt = Variable(LongTensor(batch_size).fill_(opt.num_classes), requires_grad=False)
+               
           # Configure input
-          real_imgs = Variable(imgs.type(FloatTensor))
-          labels = Variable(labels.type(LongTensor))
 
+          real_imgs = Variable(torch.tensor(imgs).type(FloatTensor))
+          final_labels = Variable(torch.tensor(final_labels).type(LongTensor))         
+   
           # -----------------
           #  Train Generator
           # -----------------
@@ -247,11 +264,21 @@ if __name__ == "__main__":
 
           # Generate a batch of images
           gen_imgs = generator(z)
-          gen_imgs, _ = NoiseAdder.add_noise(gen_imgs, opt)
+          gen_imgs,  noise_label = NoiseAdder.add_noise(gen_imgs, opt)
+          
+          if opt.partialMatchFlag :            # This commpresses (FAKE,2) and (2,FAKE) into one single label
+            fake_aux_gt = encoder.encode_labels(fake_label_list, noise_label)  # Encode fake labels with noise labels
+            fake_aux_gt = Variable(LongTensor(fake_aux_gt))  
+
+            fake_aux_gt1,fake_aux_gt2 = encoder.create_ground_truth_tensors(fake_aux_gt)
+            
+            #fake_aux_gt1 = Variable(LongTensor(fake_aux_gt1))  
+            #fake_aux_gt2 = Variable(LongTensor(fake_aux_gt2))
+
           # Loss measures generator's ability to fool the discriminator
           validity, _ = discriminator(gen_imgs)
           g_loss = adversarial_loss(validity, valid)
-
+            
           g_loss.backward()
           optimizer_G.step()
 
@@ -263,18 +290,56 @@ if __name__ == "__main__":
 
           # Loss for real images
           real_pred, real_aux = discriminator(real_imgs)
-          d_real_loss = (adversarial_loss(real_pred, valid) + auxiliary_loss(real_aux, labels)) / 2
+        
+          """#logs
+          answer= torch.argmax(real_aux[0])
+          print(answer)
+          decoded_answer = list(encoder.decode_labels([answer.item()]))
+          print(decoded_answer)
+          """
 
+          final_labels1 = final_labels1.to(real_aux.device)
+          final_labels2 = final_labels2.to(real_aux.device)
+
+          #que el GT sea todos los que tienen un numero en particular
+          d_adversarial_loss= adversarial_loss(real_pred, valid)
+          d_partial_auxiliary_loss_1 = partial_auxiliary_loss(real_aux, final_labels1)
+          d_partial_auxiliary_loss_2 = partial_auxiliary_loss(real_aux, final_labels2)
+          d_auxiliary_loss = auxiliary_loss(real_aux, final_labels)
+          d_real_loss = d_adversarial_loss/2 + d_partial_auxiliary_loss_1/8 +  d_partial_auxiliary_loss_2/8 +  d_auxiliary_loss/4
+          """
+          print("Real losses:",
+              "Adv:", d_adversarial_loss.item(),
+              "Aux:", d_auxiliary_loss.item(),
+              "Part1:", d_partial_auxiliary_loss_1.item(),
+              "Part2:", d_partial_auxiliary_loss_2.item())           
+          """
           # Loss for fake images
           fake_pred, fake_aux = discriminator(gen_imgs.detach())
-          d_fake_loss = (adversarial_loss(fake_pred, fake) + auxiliary_loss(fake_aux, fake_aux_gt)) / 2
 
+          #fake_aux_gt are the all the correct guesses in witch the first number is correct
+          fake_aux_gt1 = fake_aux_gt1.to(fake_aux.device)
+          fake_aux_gt2 = fake_aux_gt2.to(fake_aux.device)
+                 
+
+          d_adversarial_loss = adversarial_loss(fake_pred, fake)
+          d_partial_auxiliary_loss = partial_auxiliary_loss(fake_aux, fake_aux_gt1)
+          d_partial_auxiliary_loss = partial_auxiliary_loss(fake_aux, fake_aux_gt2)
+          d_auxiliary_loss = auxiliary_loss(fake_aux, fake_aux_gt)
+          d_fake_loss = (d_adversarial_loss/2 + d_partial_auxiliary_loss/8 + d_partial_auxiliary_loss/8 +  d_auxiliary_loss/4)
+          #Print losses
+          """print("Fake losses:",
+                  "Adv:", adversarial_loss(fake_pred, fake).item(),
+                  "Aux:", auxiliary_loss(fake_aux, fake_aux_gt).item(),
+                  "Part1:", partial_auxiliary_loss(fake_aux, fake_aux_gt1).item(),
+                  "Part2:", partial_auxiliary_loss(fake_aux, fake_aux_gt2).item())
+          """
           # Total discriminator loss
           d_loss = (d_real_loss + d_fake_loss) / 2
-
+          
           # Calculate discriminator accuracy
           pred = np.concatenate([real_aux.data.cpu().numpy(), fake_aux.data.cpu().numpy()], axis=0)
-          gt = np.concatenate([labels.data.cpu().numpy(), fake_aux_gt.data.cpu().numpy()], axis=0)
+          gt = np.concatenate([final_labels.data.cpu().numpy(), fake_aux_gt.data.cpu().numpy()], axis=0)
           d_acc = np.mean(np.argmax(pred, axis=1) == gt)
 
           d_loss.backward()
@@ -317,11 +382,13 @@ if __name__ == "__main__":
               'Discriminator Loss': d_loss.item(),
               'Discriminator Accuarcy' : 100 * d_acc,
               'Generator Loss': g_loss.item(),
+              
           })
+                # Save generator weights
+      torch.save(generator.state_dict(), directory + "/generator_weights.pth")
+      # Save discriminator weights
+      torch.save(discriminator.state_dict(), directory +"/discriminator_weights.pth")
+
 
 #loss_log.close()
 
-  # Save generator weights
-  torch.save(generator.state_dict(), directory + "/generator_weights.pth")
-  # Save discriminator weights
-  torch.save(discriminator.state_dict(), directory +"/discriminator_weights.pth")
