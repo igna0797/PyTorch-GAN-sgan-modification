@@ -5,15 +5,15 @@ import pickle
 from torch.utils.data import DataLoader
 from torch.autograd import Variable
 from torchvision import datasets
+
 from torchvision.utils import save_image
 from collections import defaultdict
 from itertools import product
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-
 from sgan import Discriminator, Generator
-from utils import parseArguments , NoiseAdder , get_opt_path , labelEncoder
+from utils import parseArguments , NoiseAdder , get_opt_path 
 from Generador import generate_image_from_seed
 
 def load_dataset( args ) -> DataLoader:
@@ -72,6 +72,7 @@ def generate_images(generator,opt,device):
         return generated_images , fake_label_list
 
 def evaluate_discriminator(discriminator: Discriminator, generator: Generator ,dataloader: DataLoader, device: torch.device, opt) :
+    correct_predictions = 0
     total_samples = 0
     falseNegatives = 0
     falsePositive = 0
@@ -79,50 +80,55 @@ def evaluate_discriminator(discriminator: Discriminator, generator: Generator ,d
 
     label_pred_counts = defaultdict(int)
     label_pred_correct = defaultdict(int)
-    encoder = labelEncoder(num_classes=10)
-    all_label_indices = sorted(encoder.index_map.values())
+    true_combo_counts = defaultdict(int)
 
-    #Create a dictionary with all the real values in which I add in each how many times each prediction was chosen.
+
     confusion = defaultdict(lambda: defaultdict(int))
 
     with torch.no_grad():
-        #------Real Images -------
         for images, labels in dataloader:
-            #Load images and add noise
             images = images.to(device).float()
             labels = labels.to(device)
             noisy_images, noise_labels = NoiseAdder.add_noise(images, opt)
             noise_labels = noise_labels.to(device)
             noisy_images = noisy_images.to(device).float()
 
-            #Run discriminator chose the highest choise and decode it
             validity , label_outputs = discriminator(noisy_images)
-            predicted_combination = torch.argmax(label_outputs, dim=1)
-            pred_true_labels, pred_noise_labels = encoder.decode_labels(predicted_combination)
+            pred_true_labels = torch.argmax(label_outputs, dim=1)
 
-
+            correct_mask = torch.logical_or(
+                torch.tensor(pred_true_labels, device=device) == labels,
+                torch.tensor(pred_true_labels, device=device) == noise_labels
+            )
+            correct_predictions += correct_mask.sum().item()
             falseNegatives += torch.sum(validity == 0).item()
             total_samples += labels.size(0)
+
             for j in range(labels.size(0)):
                 true_combo = tuple(sorted((labels[j].item(), noise_labels[j].item())))
-                pred_combo = tuple(sorted((pred_true_labels[j], pred_noise_labels[j])))
+                pred_combo = pred_true_labels[j].item()
+
+                label_pred_counts[true_combo] += 1
+                if correct_mask[j]:
+                    label_pred_correct[true_combo] += 1
                 confusion[true_combo][pred_combo] += 1
 
-
-            #Logs
             if i == 0:
                 print(f'samples: {labels.size(0)}, labels size: {labels.size()}')
+
             i += 1
             if i % 100 == 0 or i < 10:
                 save_path = f'Imagen_numero_{i}.png'
                 log_file_path = "output_log.txt"
                 save_image(images[0], 'original' + save_path, normalize=True)
                 save_image(noisy_images[0], save_path, normalize=True)
-                log_message = f'label de la imagen {i}: {labels[0]}, label de el ruido {i}: {noise_labels[0]}, combinacion predicha {i}: ({pred_true_labels[0]},{pred_noise_labels[0]})'
+                log_message = f'label de la imagen {i}: {labels[0]}, label de el ruido {i}: {noise_labels[0]}, combinacion predicha {i}: ({pred_true_labels[0]})'
                 with open(log_file_path, 'a') as f:
                     f.write(log_message + '\n')
 
-            #------ Generated iamges -------
+    
+          #------ Generated iamges -------
+           
             gen_noisy_imgs , fake_aux_labels = generate_images(generator,opt,device)
             #adds noise
             gen_noisy_imgs,  noise_label = NoiseAdder.add_noise(gen_noisy_imgs, opt)
@@ -130,20 +136,19 @@ def evaluate_discriminator(discriminator: Discriminator, generator: Generator ,d
             #fake_aux_gt = encoder.encode_labels(fake_aux_labels, noise_label)  # Encode fake labels with noise labels
 
             fake_validity , fake_label_output = discriminator(gen_noisy_imgs)
-            predicted_fake_combination = torch.argmax(fake_label_output, dim=1)
-            pred_fake_labels, pred_fake_noise_labels = encoder.decode_labels(predicted_fake_combination)
+            pred_fake_labels = torch.argmax(fake_label_output, dim=1)
 
             falsePositive += torch.sum(fake_validity == 1).item()
             total_samples += fake_label_output.size(0)
             for j in range(len(fake_aux_labels)):
                 true_combo = tuple(sorted((fake_aux_labels[j], noise_label[j].item())))
-                pred_combo = tuple(sorted((pred_fake_labels[j], pred_fake_noise_labels[j])))
+                pred_combo = pred_fake_labels[j].item()
                 confusion[true_combo][pred_combo] += 1
 
-        #Logs?
-
+    accuracy = 100 * correct_predictions / total_samples
     falseNegativesPerrcentage = (falseNegatives / total_samples) * 100
 
+    print(f"\nDiscriminator accuracy on the MNIST dataset: {accuracy:.2f}%")
     print(f"False Negatives Percentage: {falseNegativesPerrcentage:.2f}%\n")
 
 # Plot counts
@@ -161,8 +166,7 @@ def evaluate_discriminator(discriminator: Discriminator, generator: Generator ,d
         filename="confusion_matrix_percentage.png",
         percentage=True
     )
-    return  falseNegativesPerrcentage
-
+    return accuracy , falseNegativesPerrcentage
 def plot_confusion_from_dict(confusion_dict,
                               title="Confusion Matrix",
                               filename="confusion_matrix.png",
