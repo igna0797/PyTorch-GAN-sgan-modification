@@ -73,6 +73,12 @@ class NoiseAdder:
             args.noise_add_function = "maxpool"
             print("log: opt is missing noise_add_function defaulting to maxpool")
         
+        if args.noise_add_function == "maxpool":
+            merge_fn = torch.maximum
+        elif args.noise_add_function == "log_exp_sum":
+            merge_fn = _logsumexp_max
+        else:
+            raise ValueError(f"Unknown noise_add_function: {args.noise_add_function}")
         
         if args.noise_type == "lines":  # Lines noise
             return add_lines(images, max_amount_lines=args.max_lines, random_amount_lines=args.random_amount_lines)
@@ -83,7 +89,7 @@ class NoiseAdder:
                 NoiseAdder.mnist_loader = get_mnist_loader(images, args)
             
             # Add MNIST noise to the images
-            return add_mnist_noise(images, NoiseAdder.mnist_loader ,  args.noise_add_function)
+            return add_mnist_noise(images, NoiseAdder.mnist_loader ,  merge_fn)
         
         else:
             raise ValueError(f"Unknown noise type: {args.noise_type}")
@@ -102,7 +108,8 @@ def get_mnist_loader(images, args):
     mnist_data = datasets.MNIST(root="../../data/mnist2", train=True, download=True, transform=transform)
     return torch.utils.data.DataLoader(mnist_data, batch_size=images.size(0), shuffle=True,drop_last=True)
     
-def add_mnist_noise(images, mnist_loader,noise_add_function = "maxpool"):
+def add_mnist_noise(images, mnist_loader, merge_fn=torch.maximum):
+    print(merge_fn)
     if len(images.shape) == 3:# Single image case
         next_data = next(iter(mnist_loader))
         #sample_images, _ = next_data
@@ -113,19 +120,14 @@ def add_mnist_noise(images, mnist_loader,noise_add_function = "maxpool"):
         #print(f"imagenes {images.shape}")
         noise_images = noise_images[0]
         noise_images = noise_images.expand_as(images)  # Expand to match input image channels
-        if noise_add_function == "maxpool":
-            noise_images = torch.maximum(noise_images , images)               
-        elif noise_add_function == "log_exp_sum":
-            noise_images = _logsumexp_max(noise_images , images) 
-        else:
-            raise ValueError(f"Unknown noise_add_function: '{noise_add_function}'. "
-                     "Expected 'maxpool' or 'log_exp_sum'.") 
+        noise_images = merge_fn(noise_images , images)               
+
     elif len(images.shape) == 4:  # Batch image case
         next_data = next(iter(mnist_loader))
         noise_images, noise_labels  = next_data
         noise_images = noise_images.to(images.device).float()  # Convert to float and match device
         noise_images = noise_images.expand_as(images)  # Expand to match input image channels
-        noise_images = _logsumexp_max(noise_images , images)
+        noise_images = merge_fn(noise_images , images)
 
     return noise_images , noise_labels 
 
