@@ -2,6 +2,8 @@ import argparse
 import os
 import numpy as np
 import torch
+import itertools as it
+
 from torchvision import transforms, datasets
 from torchvision.utils import save_image 
 
@@ -25,6 +27,8 @@ def parseArguments():
     parser.add_argument("--random_amount_lines", type=bool, default= False , help="if false always maximum amount")
     parser.add_argument("--image_output" ,type=str ,help="Directory to store the images generated during training")
     parser.add_argument("--Training_output" ,type=str ,help="Directory to store the training")
+    parser.add_argument("--partialMatchFlag", type=bool, default=True, help="To use the partial match when comparing discriminator and generator") 
+    parser.add_argument("--noise_add_function",type=str,choices = ["log_exp_sum" , "maxpool"],default="maxpool",help="Function for adding nosie 'log_exp_sum' to make gradients flow or 'maxpool' for cuting noise prevalent gradients Default:maxpool")
 # This is for loading a already done model
     parser.add_argument("-w ", "--weights_path", type=str, help="directory for the weigths of the generator")
     parser.add_argument("-o ", "--output_path", type=str, default="images/", help="directory for the Image returned by the generator")
@@ -33,12 +37,20 @@ def parseArguments():
     opt = parser.parse_known_args()[0]
     print(opt)
     return opt
+
+def get_directory(__file__,output):
+  script_dir = os.path.dirname(os.path.abspath(__file__))
+  output_directory = os.path.basename(os.path.normpath(output))
+  directory = os.path.join(script_dir, "../../trainings/" + output_directory)   
+  return directory
+"""
 def get_directory(__file__,max_lines=3 , random_amount_lines = False):
     script_dir = os.path.dirname(os.path.abspath(__file__))
     # Define the relative path to the pickle file
     directory = os.path.join(script_dir, "../../trainings/n-lineas_" + str(max_lines) + "_Random_"+ str(random_amount_lines))    
     #directory = "../../../content/drive/MyDrive/Redes neuronales/Monografia/n-lineas_" + str(opt.max_lines) + "_Random_"+ str(opt.random_amount_lines)
     return directory
+    """
 def get_opt_path(__file__ , weights_path):
     abs_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -57,6 +69,18 @@ class NoiseAdder:
     def add_noise(images, args):
         """Add noise to the images based on the specified noise type."""
         
+        #In case opt is missing the argument i add default value,  it should not go in necver this is for legacy purpoose
+        if not hasattr(args,"noise_add_function"):
+            args.noise_add_function = "maxpool"
+            print("log: opt is missing noise_add_function defaulting to maxpool")
+        
+        if args.noise_add_function == "maxpool":
+            merge_fn = torch.maximum
+        elif args.noise_add_function == "log_exp_sum":
+            merge_fn = _logsumexp_max
+        else:
+            raise ValueError(f"Unknown noise_add_function: {args.noise_add_function}")
+        
         if args.noise_type == "lines":  # Lines noise
             return add_lines(images, max_amount_lines=args.max_lines, random_amount_lines=args.random_amount_lines)
         
@@ -66,11 +90,14 @@ class NoiseAdder:
                 NoiseAdder.mnist_loader = get_mnist_loader(images, args)
             
             # Add MNIST noise to the images
-            return add_mnist_noise(images, NoiseAdder.mnist_loader)
+            return add_mnist_noise(images, NoiseAdder.mnist_loader ,  merge_fn)
         
         else:
             raise ValueError(f"Unknown noise type: {args.noise_type}")
 
+def _logsumexp_max(a, b, alpha=10):
+    stacked = torch.stack([a, b], dim=0)  # shape: (2, ...)
+    return (1 / alpha) * torch.logsumexp(alpha * stacked, dim=0)
 
 def get_mnist_loader(images, args):
     os.makedirs("../../data/mnist2", exist_ok=True)
@@ -80,9 +107,9 @@ def get_mnist_loader(images, args):
             transforms.Normalize([0.5], [0.5] )
         ])
     mnist_data = datasets.MNIST(root="../../data/mnist2", train=True, download=True, transform=transform)
-    return torch.utils.data.DataLoader(mnist_data, batch_size=images.size(0), shuffle=True)
+    return torch.utils.data.DataLoader(mnist_data, batch_size=images.size(0), shuffle=True,drop_last=True)
     
-def add_mnist_noise(images, mnist_loader):
+def add_mnist_noise(images, mnist_loader, merge_fn=torch.maximum):
     if len(images.shape) == 3:# Single image case
         next_data = next(iter(mnist_loader))
         #sample_images, _ = next_data
@@ -93,13 +120,14 @@ def add_mnist_noise(images, mnist_loader):
         #print(f"imagenes {images.shape}")
         noise_images = noise_images[0]
         noise_images = noise_images.expand_as(images)  # Expand to match input image channels
-        noise_images = torch.maximum(noise_images , images) 
+        noise_images = merge_fn(noise_images , images)               
+
     elif len(images.shape) == 4:  # Batch image case
         next_data = next(iter(mnist_loader))
         noise_images, noise_labels  = next_data
         noise_images = noise_images.to(images.device).float()  # Convert to float and match device
         noise_images = noise_images.expand_as(images)  # Expand to match input image channels
-        noise_images = torch.maximum(noise_images , images)
+        noise_images = merge_fn(noise_images , images)
 
     return noise_images , noise_labels 
 
