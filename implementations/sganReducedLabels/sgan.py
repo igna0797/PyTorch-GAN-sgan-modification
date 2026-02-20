@@ -25,7 +25,7 @@ print(f"Grapphics card accelertation: {cuda}")
 if __name__ == "__main__":
     opt = parseArguments()
     # Get the directory where the script is located
-    directory = get_directory(__file__, opt.max_lines , opt.random_amount_lines)
+    directory = get_directory(__file__, opt.Training_output)
     optionsPath = os.path.join(directory,"opt.pkl")
     #Save options
     os.makedirs(os.path.dirname(optionsPath), exist_ok=True)  # Create the directory if it doesn't exist
@@ -225,7 +225,7 @@ if __name__ == "__main__":
           current_batch = i
           current_epoch = epoch
           batch_size = imgs.shape[0]
-          imgs, _ = NoiseAdder.add_noise(imgs,opt)
+          imgs,_= NoiseAdder.add_noise(imgs,opt)
 
           # Adversarial ground truths
           valid = Variable(FloatTensor(batch_size, 1).fill_(1.0), requires_grad=False)
@@ -247,7 +247,7 @@ if __name__ == "__main__":
 
           # Generate a batch of images
           gen_imgs = generator(z)
-          gen_imgs, _ = NoiseAdder.add_noise(gen_imgs, opt)
+          gen_imgs,_ = NoiseAdder.add_noise(gen_imgs, opt)
           # Loss measures generator's ability to fool the discriminator
           validity, _ = discriminator(gen_imgs)
           g_loss = adversarial_loss(validity, valid)
