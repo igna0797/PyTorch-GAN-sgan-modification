@@ -231,16 +231,15 @@ if __name__ == "__main__":
           current_epoch = epoch
           batch_size = imgs.shape[0]
           imgs, noise_label = NoiseAdder.add_noise(imgs,opt)
-          if opt.partialMatchFlag :
             # This commpresses (1,2) and (2,1) into one single label
-            final_labels = encoder.encode_labels(labels, noise_label)
-            final_labels1,final_labels2 = encoder.create_ground_truth_tensors(final_labels)
+          final_labels = encoder.encode_labels(labels, noise_label)
+          final_labels1,final_labels2 = encoder.create_ground_truth_tensors(final_labels)
 
             #final_labels1,final_labels2 = encoder.decode_labels(final_labels)
 
 
             #Getting the fake + noise labels
-            fake_label_list = [opt.num_classes] * batch_size
+          fake_label_list = [opt.num_classes] * batch_size
           
           # Adversarial ground truths
           valid = Variable(FloatTensor(batch_size, 1).fill_(1.0), requires_grad=False)
@@ -265,11 +264,11 @@ if __name__ == "__main__":
           gen_imgs = generator(z)
           gen_imgs,  noise_label = NoiseAdder.add_noise(gen_imgs, opt)
           
-          if opt.partialMatchFlag :            # This commpresses (FAKE,2) and (2,FAKE) into one single label
-            fake_aux_gt = encoder.encode_labels(fake_label_list, noise_label)  # Encode fake labels with noise labels
-            fake_aux_gt = Variable(LongTensor(fake_aux_gt))  
+            # This commpresses (FAKE,2) and (2,FAKE) into one single label
+          fake_aux_gt = encoder.encode_labels(fake_label_list, noise_label)  # Encode fake labels with noise labels
+          fake_aux_gt = Variable(LongTensor(fake_aux_gt))  
 
-            fake_aux_gt1,fake_aux_gt2 = encoder.create_ground_truth_tensors(fake_aux_gt)
+          fake_aux_gt1,fake_aux_gt2 = encoder.create_ground_truth_tensors(fake_aux_gt)
             
             #fake_aux_gt1 = Variable(LongTensor(fake_aux_gt1))  
             #fake_aux_gt2 = Variable(LongTensor(fake_aux_gt2))

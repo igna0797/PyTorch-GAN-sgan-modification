@@ -27,7 +27,7 @@ def parseArguments():
     parser.add_argument("--random_amount_lines", type=bool, default= False , help="if false always maximum amount")
     parser.add_argument("--image_output" ,type=str ,help="Directory to store the images generated during training")
     parser.add_argument("--Training_output" ,type=str ,help="Directory to store the training")
-    parser.add_argument("--partialMatchFlag", type=bool, default=True, help="To use the partial match when comparing discriminator and generator") 
+    parser.add_argument("--partialMatchFlag", action="store_true", help="Add the argument to use the partial match when training the generator") 
     parser.add_argument("--noise_add_function",type=str,choices = ["log_exp_sum" , "maxpool"],default="maxpool",help="Function for adding nosie 'log_exp_sum' to make gradients flow or 'maxpool' for cuting noise prevalent gradients Default:maxpool")
 # This is for loading a already done model
     parser.add_argument("-w ", "--weights_path", type=str, help="directory for the weigths of the generator")
