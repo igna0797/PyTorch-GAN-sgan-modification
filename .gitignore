@@ -1,4 +1,3 @@
-
 *.json
 *.h5
 *.hdf5
@@ -14,3 +13,4 @@ images
 __pycache__
 *.swp
 
+trainings/Test/*
