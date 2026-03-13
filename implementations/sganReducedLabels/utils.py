@@ -162,4 +162,4 @@ def add_lines(images,max_amount_lines=1, random_amount_lines=False):
             vertical_line_pos = np.random.randint(0, width)
             images_with_lines[i, :, :, vertical_line_pos] = 1  # Change pixel values to black
 
-    return images_with_lines
+    return images_with_lines , None
