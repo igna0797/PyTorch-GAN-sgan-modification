@@ -13,7 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sgan import Discriminator, Generator
-from utils import parseArguments , NoiseAdder , get_opt_path 
+from utils import parseArguments , NoiseAdder , get_opt_path , labelEncoder
 from Generador import generate_image_from_seed
 
 def load_dataset( args ) -> DataLoader:
@@ -154,7 +154,7 @@ def evaluate_discriminator(discriminator: Discriminator, generator: Generator ,d
 # Plot counts
     plot_confusion_from_dict(
         confusion,
-        title="Confusion Matrix - Counts",
+        title="Matriz de confusión",
         filename="confusion_matrix.png",
         percentage=False
     )
@@ -162,13 +162,13 @@ def evaluate_discriminator(discriminator: Discriminator, generator: Generator ,d
     # Plot percentages
     plot_confusion_from_dict(
         confusion,
-        title="Confusion Matrix (%) - Prediction Distribution",
+        title="Matriz de confusión (%)",
         filename="confusion_matrix_percentage.png",
         percentage=True
     )
     return accuracy , falseNegativesPerrcentage
 def plot_confusion_from_dict(confusion_dict,
-                              title="Confusion Matrix",
+                              title="Matriz de confusión",
                               filename="confusion_matrix.png",
                               percentage=False):
     """
@@ -180,6 +180,9 @@ def plot_confusion_from_dict(confusion_dict,
         filename (str): Output image filename.
         percentage (bool): Normalize rows to percentages if True.
     """
+    num_classes=10
+    encoder = labelEncoder(num_classes=10)
+
     # Extract labels
     true_combos = sorted(confusion_dict.keys())
     pred_combos = sorted({k for v in confusion_dict.values() for k in v.keys()})
@@ -192,6 +195,18 @@ def plot_confusion_from_dict(confusion_dict,
         for j, pred_label in enumerate(pred_combos):
             matrix[i, j] = confusion_dict[true_label].get(pred_label, 0)
 
+    #decode for labels and replacing FAKE 
+    pred_combos = encoder.decode_labels(pred_combos)
+    zipped_preds = list(zip(*pred_combos))
+
+    xtick_labels = [
+        tuple("FAKE" if val == num_classes else val for val in pair) 
+        for pair in zipped_preds
+    ]
+    ytick_labels = [
+        tuple("FAKE" if val == num_classes else val for val in combo) 
+        for combo in true_combos
+]
     # Normalize if percentage
     if percentage:
         row_sums = matrix.sum(axis=1, keepdims=True)
@@ -210,14 +225,15 @@ def plot_confusion_from_dict(confusion_dict,
         matrix,
         annot=True,
         fmt=fmt,
-        xticklabels=pred_combos,
-        yticklabels=true_combos,
+        xticklabels=xtick_labels,
+        yticklabels=ytick_labels,
         cmap= cmap,
-        cbar_kws={'label': cbar_label}
+        cbar=False
+        #cbar_kws={'label': cbar_label}
     )
 
-    plt.xlabel("Predicted Label (pred1, pred2)")
-    plt.ylabel("True Label (true1, noise2)")
+    plt.xlabel("Etiqueta predicha")
+    plt.ylabel("Etiqueta Real")
     plt.title(title)
     plt.tight_layout()
     plt.savefig(filename)

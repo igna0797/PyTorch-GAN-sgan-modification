@@ -140,12 +140,15 @@ def plot_confusion(confusion, filename, percentage=False):
         cmap=cmap,
         xticklabels=pred_labels,
         yticklabels=true_labels,
-        cbar_kws={"label": cbar_label}
+        annot_kws={"size": 18},
+        cbar=False
+        #cbar_kws={"label": cbar_label}
     )
-
-    plt.xlabel("Predicted Class")
-    plt.ylabel("True Class")
-    plt.title("Confusion Matrix (training-like)")
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.xlabel("Etiqueta predicha", fontsize=14)
+    plt.ylabel("Etiqueta Real", fontsize=14)
+    plt.title("Matriz de confusión", fontsize=16)
     plt.tight_layout()
     plt.savefig(filename)
     plt.close()
