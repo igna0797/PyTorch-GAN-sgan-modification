@@ -29,6 +29,9 @@ def parseArguments():
     parser.add_argument("--Training_output" ,type=str ,help="Directory to store the training")
     parser.add_argument("--partialMatchFlag", type=bool, default=True, help="To use the partial match when comparing discriminator and generator") 
     parser.add_argument("--noise_add_function",type=str,choices = ["log_exp_sum" , "maxpool"],default="maxpool",help="Function for adding nosie 'log_exp_sum' to make gradients flow or 'maxpool' for cuting noise prevalent gradients Default:maxpool")
+    parser.add_argument("--constant_batch_noise", action="store_true",
+                        help="If set, all images in a batch share the same noise sample (constant intra-batch noise). "
+                             "Default: each image gets independent noise (variable intra-batch noise).")
 # This is for loading a already done model
     parser.add_argument("-w ", "--weights_path", type=str, help="directory for the weigths of the generator")
     parser.add_argument("-o ", "--output_path", type=str, default="images/", help="directory for the Image returned by the generator")
@@ -73,7 +76,11 @@ class NoiseAdder:
         if not hasattr(args,"noise_add_function"):
             args.noise_add_function = "maxpool"
             print("log: opt is missing noise_add_function defaulting to maxpool")
-        
+        if not hasattr(args, "constant_batch_noise"):
+            args.constant_batch_noise = False
+            print("log: opt is missing constant_batch_noise — defaulting to False (variable noise)")
+
+ 
         if args.noise_add_function == "maxpool":
             merge_fn = torch.maximum
         elif args.noise_add_function == "log_exp_sum":
@@ -90,7 +97,7 @@ class NoiseAdder:
                 NoiseAdder.mnist_loader = get_mnist_loader(images, args)
             
             # Add MNIST noise to the images
-            return add_mnist_noise(images, NoiseAdder.mnist_loader ,  merge_fn)
+            return add_mnist_noise(images, NoiseAdder.mnist_loader ,  merge_fn,constant_batch_noise=args.constant_batch_noise)
         
         else:
             raise ValueError(f"Unknown noise type: {args.noise_type}")
@@ -109,7 +116,7 @@ def get_mnist_loader(images, args):
     mnist_data = datasets.MNIST(root="../../data/mnist2", train=True, download=True, transform=transform)
     return torch.utils.data.DataLoader(mnist_data, batch_size=images.size(0), shuffle=True,drop_last=True)
     
-def add_mnist_noise(images, mnist_loader, merge_fn=torch.maximum):
+def add_mnist_noise(images, mnist_loader, merge_fn=torch.maximum , constant_batch_noise=False):
     if len(images.shape) == 3:# Single image case
         next_data = next(iter(mnist_loader))
         #sample_images, _ = next_data
@@ -126,6 +133,14 @@ def add_mnist_noise(images, mnist_loader, merge_fn=torch.maximum):
         next_data = next(iter(mnist_loader))
         noise_images, noise_labels  = next_data
         noise_images = noise_images.to(images.device).float()  # Convert to float and match device
+        if constant_batch_noise:
+            # Select the first sample and tile it across the whole batch so
+            # every image sees the identical noise — the zero-variance signature
+            # we want to study. .repeat() is used instead of .expand() to
+            # produce a contiguous tensor with no shared-memory aliasing.
+            noise_images = noise_images[0:1].repeat(images.shape[0], 1, 1, 1)
+            noise_labels = noise_labels[0:1].repeat(images.shape[0])
+
         noise_images = noise_images.expand_as(images)  # Expand to match input image channels
         noise_images = merge_fn(noise_images , images)
 
